@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>リレーマンガ</title>
+</head>
+<body>
+    <h1>リレーマンガへようこそ！</h1>
+
+    <p>好きなマンガを新しく作ったり、続きを投稿したりできます。</p>
+
+    <a href="{% url 'create_page' %}">
+        <button>マンガを新しく作る</button>
+    </a>
+    <a href="{% url 'page_list' %}">
+        <button>マンガを見る / 続きを投稿する</button>
+    </a>
+</body>
+</html>

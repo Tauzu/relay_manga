@@ -1,0 +1,8 @@
+<h1>投稿されたページ</h1>
+{% for page in pages %}
+    <div>
+        <p>{{ page.author.username }} - {{ page.created_at }}</p>
+        <img src="{{ page.image.url }}" width="300">
+    </div>
+{% endfor %}
+<a href="{% url 'create_page' %}">新しいページを投稿する</a>
