@@ -9,11 +9,8 @@
 
     <p>好きなマンガを新しく作ったり、続きを投稿したりできます。</p>
 
-    <a href="{% url 'create_page' %}">
-        <button>マンガを新しく作る</button>
-    </a>
-    <a href="{% url 'page_list' %}">
-        <button>マンガを見る / 続きを投稿する</button>
-    </a>
+    <a href="{% url 'create_manga' %}"><button>マンガを新しく作る</button></a>
+    <a href="{% url 'manga_list' %}"><button>マンガを見る / 続きを投稿する</button></a>
+
 </body>
 </html>

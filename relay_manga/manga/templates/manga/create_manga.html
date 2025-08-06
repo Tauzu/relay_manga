@@ -1,0 +1,6 @@
+<h1>新しいマンガを作る</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">作成する</button>
+</form>

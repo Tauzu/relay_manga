@@ -1,0 +1,6 @@
+<h1>マンガ一覧</h1>
+{% for manga in mangas %}
+    <div>
+        <a href="{% url 'manga_detail' manga.id %}">{{ manga.title }}</a>
+    </div>
+{% endfor %}
