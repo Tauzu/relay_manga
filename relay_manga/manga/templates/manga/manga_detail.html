@@ -1,8 +1,27 @@
-<h1>{{ manga.title }}</h1>
-{% for page in pages %}
-    <div>
-        <p>{{ page.author.username }} - {{ page.created_at }}</p>
-        <img src="{{ page.image.url }}" width="300">
-    </div>
-{% endfor %}
-<a href="{% url 'create_page' manga.id %}">続きを投稿する</a>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ manga.title }}</title>
+</head>
+<body>
+    <h1>{{ manga.title }}</h1>
+    <p>作成者: {{ manga.created_by }}</p>
+
+    <h2>ページ一覧</h2>
+    <ul>
+        {% for page in pages %}
+            <li>
+                <p>作者: {{ page.author }}</p>
+                <img src="{{ page.image.url }}" alt="page image" style="max-width:400px;">
+                {% if page.parent %}
+                    <p>親ページ: {{ page.parent.id }}</p>
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>まだページがありません。</li>
+        {% endfor %}
+    </ul>
+
+    <p><a href="{% url 'manga_list' %}">← マンガ一覧に戻る</a></p>
+</body>
+</html>

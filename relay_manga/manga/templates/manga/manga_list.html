@@ -1,6 +1,19 @@
-<h1>マンガ一覧</h1>
-{% for manga in mangas %}
-    <div>
-        <a href="{% url 'manga_detail' manga.id %}">{{ manga.title }}</a>
-    </div>
-{% endfor %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>マンガ一覧</title>
+</head>
+<body>
+    <h1>マンガ一覧</h1>
+    <ul>
+        {% for manga in mangas %}
+            <li>
+                <a href="{% url 'manga_detail' manga.id %}">{{ manga.title }}</a>
+                （作成者: {{ manga.created_by }}）
+            </li>
+        {% empty %}
+            <li>まだマンガがありません。</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

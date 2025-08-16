@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Manga, Page
 from .forms import MangaForm, PageForm
@@ -26,7 +26,7 @@ def manga_list(request):
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
 
 def manga_detail(request, manga_id):
-    manga = Manga.objects.get(id=manga_id)
+    manga = get_object_or_404(Manga, id=manga_id)
     pages = manga.pages.all().order_by('created_at')
     return render(request, 'manga/manga_detail.html', {'manga': manga, 'pages': pages})
 
