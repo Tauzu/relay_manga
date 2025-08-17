@@ -25,12 +25,37 @@ def manga_list(request):
     mangas = Manga.objects.all().order_by('-created_at')
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
 
+import json
+
 def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
-    root_pages = manga.pages.filter(parent__isnull=True)
+    # 親もまとめて取得（追加クエリを減らす）
+    pages = list(manga.pages.select_related('author', 'parent'))
+
+    def get_level(page):
+        d = 0
+        p = page.parent
+        # 親をたどって深さを数える（root=0）
+        while p is not None:
+            d += 1
+            p = p.parent
+        return d
+
+    nodes = []
+    edges = []
+    for page in pages:
+        nodes.append({
+            "id": page.id,
+            "label": f"Page {page.id}\\n{getattr(page.author, 'username', 'anon')}",
+            "level": get_level(page),  # ← これが重要！
+        })
+        if page.parent_id:
+            edges.append({"from": page.parent_id, "to": page.id})
+
     return render(request, 'manga/manga_detail.html', {
         'manga': manga,
-        'root_pages': root_pages
+        'nodes': json.dumps(nodes),
+        'edges': json.dumps(edges),
     })
 
 @login_required
