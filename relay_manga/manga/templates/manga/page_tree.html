@@ -1,0 +1,11 @@
+<li>
+    <p>作者: {{ page.author }}</p>
+    <img src="{{ page.image.url }}" alt="page image" style="max-width:200px; border:1px solid #ccc;">
+    {% if page.children.all %}
+        <ul>
+            {% for child in page.children.all %}
+                {% include "manga/page_tree.html" with page=child %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

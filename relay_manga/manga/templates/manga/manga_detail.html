@@ -7,16 +7,10 @@
     <h1>{{ manga.title }}</h1>
     <p>作成者: {{ manga.created_by }}</p>
 
-    <h2>ページ一覧</h2>
+    <h2>ページツリー</h2>
     <ul>
-        {% for page in pages %}
-            <li>
-                <p>作者: {{ page.author }}</p>
-                <img src="{{ page.image.url }}" alt="page image" style="max-width:400px;">
-                {% if page.parent %}
-                    <p>親ページ: {{ page.parent.id }}</p>
-                {% endif %}
-            </li>
+        {% for page in root_pages %}
+            {% include "manga/page_tree.html" with page=page %}
         {% empty %}
             <li>まだページがありません。</li>
         {% endfor %}

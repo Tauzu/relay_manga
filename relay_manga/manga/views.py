@@ -27,8 +27,11 @@ def manga_list(request):
 
 def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
-    pages = manga.pages.all().order_by('created_at')
-    return render(request, 'manga/manga_detail.html', {'manga': manga, 'pages': pages})
+    root_pages = manga.pages.filter(parent__isnull=True)
+    return render(request, 'manga/manga_detail.html', {
+        'manga': manga,
+        'root_pages': root_pages
+    })
 
 @login_required
 def create_page(request, manga_id):
