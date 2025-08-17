@@ -35,8 +35,9 @@ def manga_detail(request, manga_id):
 
 @login_required
 def create_page(request, manga_id):
-    manga = Manga.objects.get(id=manga_id)
-    if request.method == "POST":
+    manga = get_object_or_404(Manga, id=manga_id)
+
+    if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
         if form.is_valid():
             page = form.save(commit=False)
@@ -46,7 +47,11 @@ def create_page(request, manga_id):
             return redirect('manga_detail', manga_id=manga.id)
     else:
         form = PageForm()
-    return render(request, 'manga/create_page.html', {'form': form, 'manga': manga})
+
+    return render(request, 'manga/create_page.html', {
+        'form': form,
+        'manga': manga
+    })
 
 def page_list(request):
     pages = Page.objects.all().order_by('-created_at')

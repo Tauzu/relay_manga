@@ -16,6 +16,10 @@
         {% endfor %}
     </ul>
 
+    <p>
+        <a href="{% url 'create_page' manga.id %}">このマンガにページを追加する</a>
+    </p>
+
     <p><a href="{% url 'manga_list' %}">← マンガ一覧に戻る</a></p>
 </body>
 </html>

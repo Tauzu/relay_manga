@@ -1,6 +1,17 @@
-<h1>ページを投稿</h1>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">投稿する</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ manga.title }} - ページ追加</title>
+</head>
+<body>
+    <h1>{{ manga.title }} にページを追加</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">投稿</button>
+    </form>
+
+    <p><a href="{% url 'manga_detail' manga.id %}">← 戻る</a></p>
+</body>
+</html>
