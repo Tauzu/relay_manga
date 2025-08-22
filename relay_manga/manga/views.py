@@ -71,6 +71,10 @@ def manga_tree(request, manga_id):
         "edges": edges,
     })
 
+def page_detail(request, page_id):
+    page = get_object_or_404(Page, id=page_id)
+    return render(request, 'manga/page_detail.html', {'page': page})
+
 @login_required
 def create_page(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)

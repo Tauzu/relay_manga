@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ page.manga.title }} - Page {{ page.id }}</title>
+</head>
+<body>
+    <h1>{{ page.manga.title }} - Page {{ page.id }}</h1>
+    <p>Author: {{ page.author.username }}</p>
+    <p>作成日時: {{ page.created_at }}</p>
+
+    <div>
+        <img src="{{ page.image.url }}" alt="Page image" style="max-width:80%; border:1px solid #ccc;">
+    </div>
+
+    <p>
+        <a href="{% url 'manga_detail' page.manga.id %}">← マンガに戻る</a>
+    </p>
+</body>
+</html>

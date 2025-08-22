@@ -74,6 +74,13 @@
             }
         });
 
+        // ✅ ノードクリックでページ詳細へ遷移
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];  // ノードの id = Page.id
+                window.location.href = "/page/" + nodeId + "/";  // ページ詳細へ
+            }
+        });
 
         network.on("blurNode", function () {
             tooltip.style.display = "none";
