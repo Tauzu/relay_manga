@@ -6,6 +6,7 @@ urlpatterns = [
     path('new/', views.create_manga, name='create_manga'),
     path('list/', views.manga_list, name='manga_list'),
     path('<int:manga_id>/', views.manga_detail, name='manga_detail'),
-    path('<int:manga_id>/create/', views.create_page, name='create_page'),
-    path('page/<int:page_id>/', views.page_detail, name='page_detail'),  # ✅ ページ詳細
+    path('<int:manga_id>/create/', views.create_page, name='create_page'),  # 親なし
+    path('page/<int:parent_id>/continue/', views.continue_page, name='continue_page'),  # 親あり
+    path('page/<int:page_id>/', views.page_detail, name='page_detail'),
 ]

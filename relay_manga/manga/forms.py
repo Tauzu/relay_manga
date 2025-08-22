@@ -9,4 +9,4 @@ class MangaForm(forms.ModelForm):
 class PageForm(forms.ModelForm):
     class Meta:
         model = Page
-        fields = ['image', 'parent']
+        fields = ['image']   # ← parent を外す

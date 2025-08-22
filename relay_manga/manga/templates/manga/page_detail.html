@@ -13,6 +13,9 @@
     </div>
 
     <p>
+        <a href="{% url 'continue_page' page.id %}">このページから続きを描く</a>
+    </p>
+    <p>
         <a href="{% url 'manga_detail' page.manga.id %}">← マンガに戻る</a>
     </p>
 </body>

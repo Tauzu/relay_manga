@@ -92,7 +92,31 @@ def create_page(request, manga_id):
 
     return render(request, 'manga/create_page.html', {
         'form': form,
-        'manga': manga
+        'manga': manga,
+        'parent': None,
+    })
+
+@login_required
+def continue_page(request, parent_id):
+    parent = get_object_or_404(Page, id=parent_id)
+    manga = parent.manga
+
+    if request.method == 'POST':
+        form = PageForm(request.POST, request.FILES)
+        if form.is_valid():
+            page = form.save(commit=False)
+            page.manga = manga
+            page.author = request.user
+            page.parent = parent   # ✅ 親をセット
+            page.save()
+            return redirect('manga_detail', manga_id=manga.id)
+    else:
+        form = PageForm()
+
+    return render(request, 'manga/create_page.html', {
+        'form': form,
+        'manga': manga,
+        'parent': parent,   # ✅ ここで親情報をテンプレートに渡す
     })
 
 def page_list(request):
