@@ -87,7 +87,10 @@
         });
     </script>
 
-    <p><a href="{% url 'create_page' manga.id %}">このマンガにページを追加する</a></p>
+    {% if manga.pages.count == 0 %}
+        <p><a href="{% url 'create_page' manga.id %}">このマンガに最初のページを追加する</a></p>
+    {% endif %}
+
     <p><a href="{% url 'manga_list' %}">← マンガ一覧に戻る</a></p>
 </body>
 </html>

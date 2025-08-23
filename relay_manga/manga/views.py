@@ -76,8 +76,16 @@ def page_detail(request, page_id):
     return render(request, 'manga/page_detail.html', {'page': page})
 
 @login_required
-def create_page(request, manga_id):
+def create_page(request, manga_id, parent_id=None):
     manga = get_object_or_404(Manga, id=manga_id)
+    parent = None
+    if parent_id:
+        parent = get_object_or_404(Page, id=parent_id, manga=manga)
+
+    # ✅ ルートページ制御：親なしで新規作成しようとしている場合
+    if parent is None and manga.pages.filter(parent__isnull=True).exists():
+        # すでにルートがあるのでマンガ詳細にリダイレクト
+        return redirect('manga_detail', manga_id=manga.id)
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
@@ -85,6 +93,8 @@ def create_page(request, manga_id):
             page = form.save(commit=False)
             page.manga = manga
             page.author = request.user
+            if parent:
+                page.parent = parent
             page.save()
             return redirect('manga_detail', manga_id=manga.id)
     else:
@@ -93,7 +103,7 @@ def create_page(request, manga_id):
     return render(request, 'manga/create_page.html', {
         'form': form,
         'manga': manga,
-        'parent': None,
+        'parent': parent,
     })
 
 @login_required
