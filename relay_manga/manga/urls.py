@@ -9,4 +9,5 @@ urlpatterns = [
     path('<int:manga_id>/create/', views.create_page, name='create_page'),  # 親なし
     path('page/<int:parent_id>/continue/', views.continue_page, name='continue_page'),  # 親あり
     path('page/<int:page_id>/', views.page_detail, name='page_detail'),
+    path('page/<int:page_id>/like/', views.like_page, name='like_page'),  # ✅ 追加
 ]

@@ -7,11 +7,33 @@
     <h1>{{ page.manga.title }} - Page {{ page.id }}</h1>
     <p>Author: {{ page.author.username }}</p>
     <p>作成日時: {{ page.created_at }}</p>
-    <p>いいね数: {{ page.likes }}</p>
+    <p>いいね数: <span id="like-count">{{ page.likes }}</span></p>
+
+    <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
+        {% csrf_token %}
+        <button type="submit">👍 いいね</button>
+    </form>
 
     <div>
         <img src="{{ page.image.url }}" alt="Page image" style="max-width:80%; border:1px solid #ccc;">
     </div>
+
+    <script>
+    document.getElementById("like-form").addEventListener("submit", function(event) {
+        event.preventDefault();
+        fetch(this.action, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("like-count").innerText = data.likes;
+        });
+    });
+    </script>
 
     <hr>
 

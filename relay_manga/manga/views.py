@@ -149,3 +149,16 @@ def continue_page(request, parent_id):
 def page_list(request):
     pages = Page.objects.all().order_by('-created_at')
     return render(request, 'manga/page_list.html', {'pages': pages})
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+@login_required
+@require_POST
+def like_page(request, page_id):
+    page = get_object_or_404(Page, id=page_id)
+    page.likes += 1
+    page.save()
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"likes": page.likes})
+    return redirect("page_detail", page_id=page.id)
