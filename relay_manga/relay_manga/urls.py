@@ -21,7 +21,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('manga.urls')),   # トップページを manga に委譲
+    path('', include('manga.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),  # ← これを追加
 ]
 
 if settings.DEBUG:

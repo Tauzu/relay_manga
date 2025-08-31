@@ -19,6 +19,8 @@ import os
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+LOGIN_REDIRECT_URL = 'manga_list'   # ログイン後に行くURL（名前付きURLで指定）
+LOGOUT_REDIRECT_URL = 'home'        # ログアウト後に行くURL
 
 
 # Quick-start development settings - unsuitable for production
