@@ -73,7 +73,24 @@ def manga_tree(request, manga_id):
 
 def page_detail(request, page_id):
     page = get_object_or_404(Page, id=page_id)
-    return render(request, 'manga/page_detail.html', {'page': page})
+
+    # 親ページ
+    parent = page.parent
+
+    # 子ページ一覧
+    children = list(page.children.all())
+
+    # 優先度で最大の子を「次のページ」に設定
+    next_page = None
+    if children:
+        next_page = max(children, key=lambda c: c.priority)
+
+    return render(request, 'manga/page_detail.html', {
+        'page': page,
+        'parent': parent,
+        'next_page': next_page,
+        'children': children,
+    })
 
 @login_required
 def create_page(request, manga_id, parent_id=None):

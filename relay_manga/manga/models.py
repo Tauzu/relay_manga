@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
 
-
 class Manga(models.Model):
     title = models.CharField(max_length=100)
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
@@ -32,6 +31,19 @@ class Page(models.Model):
         related_name='children',
         on_delete=models.CASCADE
     )
+    likes = models.PositiveIntegerField(default=0)  # 👍 いいね数
 
     def __str__(self):
         return f"{self.manga.title} - Page {self.id} by {self.author.username}"
+
+    def count_descendants(self):
+        """再帰的にすべての子孫ページ数を数える"""
+        total = self.children.count()
+        for child in self.children.all():
+            total += child.count_descendants()
+        return total
+
+    @property
+    def priority(self):
+        """優先度 = likes + 子孫の数"""
+        return self.likes + self.count_descendants()
