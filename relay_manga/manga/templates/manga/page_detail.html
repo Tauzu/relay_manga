@@ -10,12 +10,15 @@
     <div>
         <img src="{{ page.image.url }}" alt="Page image" style="max-width:80%; border:1px solid #ccc;">
     </div>
-    
+
     <p>いいね数: <span id="like-count">{{ page.likes }}</span></p>
 
     <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
         {% csrf_token %}
-        <button type="submit" id="like-button">👍 いいね</button>
+        <button type="submit" id="like-button"
+            {% if liked %}disabled{% endif %}>
+            {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
+        </button>
     </form>
 
     <script>

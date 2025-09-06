@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Manga, Page
+from .models import Manga, Page, PageLike
 from .forms import MangaForm, PageForm
 
 def home(request):
@@ -85,11 +85,17 @@ def page_detail(request, page_id):
     if children:
         next_page = max(children, key=lambda c: c.priority)
 
+    # ✅ ユーザーがいいね済みかどうか判定
+    liked = False
+    if request.user.is_authenticated:
+        liked = PageLike.objects.filter(user=request.user, page=page).exists()
+
     return render(request, 'manga/page_detail.html', {
         'page': page,
         'parent': parent,
         'next_page': next_page,
         'children': children,
+        'liked': liked,   # ← テンプレートに渡す
     })
 
 @login_required
@@ -151,7 +157,6 @@ def page_list(request):
     return render(request, 'manga/page_list.html', {'pages': pages})
 
 from django.http import JsonResponse
-from .models import Page, PageLike
 from django.views.decorators.http import require_POST
 
 @login_required
