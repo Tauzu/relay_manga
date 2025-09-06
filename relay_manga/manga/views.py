@@ -151,14 +151,18 @@ def page_list(request):
     return render(request, 'manga/page_list.html', {'pages': pages})
 
 from django.http import JsonResponse
+from .models import Page, PageLike
 from django.views.decorators.http import require_POST
 
 @login_required
 @require_POST
 def like_page(request, page_id):
     page = get_object_or_404(Page, id=page_id)
-    page.likes += 1
-    page.save()
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return JsonResponse({"likes": page.likes})
-    return redirect("page_detail", page_id=page.id)
+
+    # ✅ すでにいいねしているか確認
+    like, created = PageLike.objects.get_or_create(user=request.user, page=page)
+
+    return JsonResponse({
+        "likes": page.likes,
+        "already": not created
+    })

@@ -44,6 +44,18 @@ class Page(models.Model):
         return total
 
     @property
+    def likes(self):
+        return self.likes_rel.count()  # 👍 PageLike を数える
+
+    @property
     def priority(self):
         """優先度 = likes + 子孫の数"""
         return self.likes + self.count_descendants()
+
+class PageLike(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name="likes_rel")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "page")  # ✅ ユーザーごとに1回だけ
