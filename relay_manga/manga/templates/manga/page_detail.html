@@ -31,8 +31,17 @@
                 "X-Requested-With": "XMLHttpRequest"
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (response.redirected) {
+                // ✅ ログインページにリダイレクトされたとき
+                alert("いいねするにはログインが必要です。");
+                window.location.href = response.url;  // ログインページに飛ばす
+                return;
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data) return; // ログインしてなければここで終了
             document.getElementById("like-count").innerText = data.likes;
             if (data.already) {
                 document.getElementById("like-button").disabled = true;
