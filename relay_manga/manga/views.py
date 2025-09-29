@@ -171,3 +171,15 @@ def like_page(request, page_id):
         "likes": page.likes,
         "already": not created
     })
+
+from django.contrib.auth.views import LoginView
+from django.urls import reverse
+
+class CustomLoginView(LoginView):
+    def get_success_url(self):
+        next_url = self.get_redirect_url()  # ログインフォームの hidden input に入ってる next の値
+        if next_url and "/like/" in next_url:
+            # 例: /page/3/like/ → /page/3/
+            page_id = next_url.split("/")[2]
+            return reverse("page_detail", args=[page_id])
+        return super().get_success_url()

@@ -5,6 +5,16 @@
     <title>リレーマンガ</title>
 </head>
 <body>
+    {% if user.is_authenticated %}
+    <p>こんにちは、{{ user.username }} さん！</p>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit">ログアウト</button>
+    </form>
+    {% else %}
+    <a href="{% url 'login' %}">ログイン</a>
+    {% endif %}
+
     <h1>リレーマンガへようこそ！</h1>
 
     <p>好きなマンガを新しく作ったり、続きを投稿したりできます。</p>
