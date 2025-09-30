@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}リレーマンガ{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- ヘッダー -->
+    <header class="flex justify-between items-center p-4 bg-white shadow">
+        <h1 class="text-2xl font-bold">
+            <a href="{% url 'home' %}">リレーマンガ</a>
+        </h1>
+        <div>
+            {% if user.is_authenticated %}
+                <span class="mr-4">こんにちは、{{ user.username }} さん！</span>
+                <form action="{% url 'logout' %}" method="post" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">
+                        ログアウト
+                    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600">
+                    ログイン
+                </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-grow p-6">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,26 +1,20 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>リレーマンガ</title>
-</head>
-<body>
-    {% if user.is_authenticated %}
-    <p>こんにちは、{{ user.username }} さん！</p>
-    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit">ログアウト</button>
-    </form>
-    {% else %}
-    <a href="{% url 'login' %}">ログイン</a>
-    {% endif %}
+{% extends "base.html" %}
 
-    <h1>リレーマンガへようこそ！</h1>
+{% block title %}リレーマンガへようこそ{% endblock %}
 
-    <p>好きなマンガを新しく作ったり、続きを投稿したりできます。</p>
+{% block content %}
+<div class="text-center">
+    <h2 class="text-4xl font-bold mb-8">リレーマンガへようこそ</h2>
+    <div class="space-x-4">
+        <a href="{% url 'create_manga' %}" 
+           class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
+           新しくマンガを作る
+        </a>
 
-    <a href="{% url 'create_manga' %}"><button>マンガを新しく作る</button></a>
-    <a href="{% url 'manga_list' %}"><button>マンガを見る / 続きを投稿する</button></a>
-
-</body>
-</html>
+        <a href="{% url 'manga_list' %}" 
+           class="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition">
+           マンガを見る / 続きを投稿する
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,96 +1,91 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ manga.title }}</title>
-    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <style>
-        #network {
-            width: 100%;
-            height: 600px;
-            border: 1px solid lightgray;
+{% extends "base.html" %}
+
+{% block title %}{{ manga.title }}{% endblock %}
+
+{% block content %}
+<h2 class="text-3xl font-bold mb-6">{{ manga.title }}</h2>
+
+<div id="network" class="w-full h-[600px] border border-gray-300 rounded"></div>
+<div id="tooltip"></div> <!-- ✅ ツールチップ要素 -->
+
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script>
+    const nodes = new vis.DataSet({{ nodes|safe }});
+    const edges = new vis.DataSet({{ edges|safe }});
+
+    const container = document.getElementById("network");
+    const data = { nodes, edges };
+    const options = {
+        layout: {
+            hierarchical: {
+                enabled: true,
+                direction: "UD",
+                sortMethod: "directed",
+                levelSeparation: 150,
+                nodeSpacing: 120,
+                blockShifting: false,
+                edgeMinimization: false,
+                parentCentralization: false
+            }
+        },
+        physics: { enabled: false },
+        nodes: {
+            shape: "box",
+            margin: 10,
+            font: { multi: true }
+        },
+        edges: { arrows: "to" },
+        interaction: { hover: true }
+    };
+
+    const network = new vis.Network(container, data, options);
+
+    // ✅ カスタムツールチップ
+    const tooltip = document.createElement("div");
+    tooltip.id = "tooltip";
+    tooltip.style.position = "absolute";
+    tooltip.style.padding = "5px";
+    tooltip.style.background = "white";
+    tooltip.style.border = "1px solid #ccc";
+    tooltip.style.display = "none";
+    tooltip.style.zIndex = 10;
+    document.body.appendChild(tooltip);
+
+    network.on("hoverNode", function (params) {
+        const node = nodes.get(params.node);
+        if (node && node.imageUrl) {
+            tooltip.innerHTML = "<img src='" + node.imageUrl + "' width='100' height='100' style='object-fit:cover'>";
+            tooltip.style.left = (params.event.pageX + 10) + "px";
+            tooltip.style.top = (params.event.pageY + 10) + "px";
+            tooltip.style.display = "block";
         }
-        /* ツールチップ用 */
-        #tooltip {
-            position: absolute;
-            padding: 5px;
-            background: white;
-            border: 1px solid #ccc;
-            display: none;
-            z-index: 10;
+    });
+
+    network.on("blurNode", function () {
+        tooltip.style.display = "none";
+    });
+
+    // ✅ ノードクリックでページ詳細へ遷移
+    network.on("click", function (params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            window.location.href = "/page/" + nodeId + "/";
         }
-    </style>
-</head>
-<body>
-    <h1>{{ manga.title }}</h1>
+    });
+</script>
 
-    <div id="network"></div>
-    <div id="tooltip"></div> <!-- ✅ ツールチップ要素を追加 -->
+{% if manga.pages.count == 0 %}
+    <p class="mt-4">
+        <a href="{% url 'create_page' manga.id %}" 
+           class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
+           このマンガに最初のページを追加する
+        </a>
+    </p>
+{% endif %}
 
-    <script>
-        const nodes = new vis.DataSet({{ nodes|safe }});
-        const edges = new vis.DataSet({{ edges|safe }});
-
-        const container = document.getElementById("network");
-        const data = { nodes, edges };
-        const options = {
-            layout: {
-                hierarchical: {
-                    enabled: true,
-                    direction: "UD",
-                    sortMethod: "directed",
-                    levelSeparation: 150,
-                    nodeSpacing: 120,
-                    blockShifting: false,
-                    edgeMinimization: false,
-                    parentCentralization: false
-                }
-            },
-            physics: { enabled: false },
-            nodes: {
-                shape: "box",
-                margin: 10,
-                font: { multi: true }
-            },
-            edges: { arrows: "to" },
-            interaction: {
-                hover: true   // ← ✅ これを追加
-            }
-        };
-
-        const network = new vis.Network(container, data, options);
-
-        // ✅ カスタムツールチップ処理
-        const tooltip = document.getElementById("tooltip");
-
-        network.on("hoverNode", function (params) {
-            const node = nodes.get(params.node);
-            console.log("hovered node:", node);   // ← ここで imageUrl を確認
-            console.log("event coords:", params.event); // ← ここで座標を確認
-            if (node && node.imageUrl) {
-                tooltip.innerHTML = "<img src='" + node.imageUrl + "' width='100' height='100' style='object-fit:cover'>";
-                tooltip.style.left = (params.event.pageX + 10) + "px";
-                tooltip.style.top = (params.event.pageY + 10) + "px";
-                tooltip.style.display = "block";
-            }
-        });
-
-        // ✅ ノードクリックでページ詳細へ遷移
-        network.on("click", function (params) {
-            if (params.nodes.length > 0) {
-                const nodeId = params.nodes[0];  // ノードの id = Page.id
-                window.location.href = "/page/" + nodeId + "/";  // ページ詳細へ
-            }
-        });
-
-        network.on("blurNode", function () {
-            tooltip.style.display = "none";
-        });
-    </script>
-
-    {% if manga.pages.count == 0 %}
-        <p><a href="{% url 'create_page' manga.id %}">このマンガに最初のページを追加する</a></p>
-    {% endif %}
-
-    <p><a href="{% url 'manga_list' %}">← マンガ一覧に戻る</a></p>
-</body>
-</html>
+<p class="mt-4">
+    <a href="{% url 'manga_list' %}" class="text-gray-600 hover:underline">
+        ← マンガ一覧に戻る
+    </a>
+</p>
+{% endblock %}

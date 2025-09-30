@@ -1,19 +1,28 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ manga.title }} - ページ追加</title>
-</head>
-<body>
-    <h1>{{ manga.title }} にページを追加</h1>
+{% extends "base.html" %}
 
-    {% if parent %}
-        <p>このページの続きとして追加: Page {{ parent.id }} by {{ parent.author.username }}</p>
-    {% endif %}
+{% block title %}{{ manga.title }} - ページ追加{% endblock %}
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">保存</button>
-    </form>
-</body>
-</html>
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">{{ manga.title }} にページを追加</h2>
+
+{% if parent %}
+    <p class="mb-4 text-gray-600">このページの続きとして追加: 
+        <span class="font-semibold">Page {{ parent.id }} by {{ parent.author.username }}</span>
+    </p>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" 
+        class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
+        保存
+    </button>
+</form>
+
+<p class="mt-4">
+    <a href="{% url 'manga_detail' manga.id %}" class="text-gray-600 hover:underline">
+        ← マンガに戻る
+    </a>
+</p>
+{% endblock %}

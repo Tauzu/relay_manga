@@ -1,6 +1,15 @@
-<h1>新しいマンガを作る</h1>
-<form method="post">
+{% extends "base.html" %}
+
+{% block title %}新しいマンガを作る{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">新しいマンガを作る</h2>
+<form method="post" class="space-y-4">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">作成する</button>
+    <button type="submit" 
+        class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
+        作成する
+    </button>
 </form>
+{% endblock %}

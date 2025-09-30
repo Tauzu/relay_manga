@@ -1,86 +1,87 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ page.manga.title }} - Page {{ page.id }}</title>
-</head>
-<body>
-    <h1>{{ page.manga.title }} - Page {{ page.id }}</h1>
-    <p>Author: {{ page.author.username }}</p>
-    <p>作成日時: {{ page.created_at }}</p>
-    <div>
-        <img src="{{ page.image.url }}" alt="Page image" style="max-width:80%; border:1px solid #ccc;">
-    </div>
+{% extends "base.html" %}
 
-    <p>いいね数: <span id="like-count">{{ page.likes }}</span></p>
+{% block title %}{{ page.manga.title }} - Page {{ page.id }}{% endblock %}
 
-    <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
-        {% csrf_token %}
-        <button type="submit" id="like-button"
-            {% if liked %}disabled{% endif %}>
-            {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
-        </button>
-    </form>
+{% block content %}
+<h2 class="text-3xl font-bold mb-4">{{ page.manga.title }} - Page {{ page.id }}</h2>
+<p class="text-gray-600 mb-2">Author: {{ page.author.username }}</p>
+<p class="text-gray-600 mb-4">作成日時: {{ page.created_at }}</p>
 
-    <script>
-    document.getElementById("like-form").addEventListener("submit", function(event) {
-        event.preventDefault();
-        fetch(this.action, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-                "X-Requested-With": "XMLHttpRequest"
-            }
-        })
-        .then(response => {
-            if (response.redirected) {
-                // ✅ ログインページにリダイレクトされたとき
-                alert("いいねするにはログインが必要です。");
-                window.location.href = response.url;  // ログインページに飛ばす
-                return;
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data) return; // ログインしてなければここで終了
-            document.getElementById("like-count").innerText = data.likes;
-            if (data.already) {
-                document.getElementById("like-button").disabled = true;
-                document.getElementById("like-button").innerText = "👍 いいね済み";
-            }
-        });
+<p class="mb-4">いいね数: <span id="like-count">{{ page.likes }}</span></p>
+
+<form id="like-form" method="post" action="{% url 'like_page' page.id %}">
+    {% csrf_token %}
+    <button type="submit" id="like-button"
+        class="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 disabled:bg-gray-400 transition"
+        {% if liked %}disabled{% endif %}>
+        {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
+    </button>
+</form>
+
+<div class="mt-6">
+    <img src="{{ page.image.url }}" alt="Page image" class="max-w-3xl border rounded shadow">
+</div>
+
+<hr class="my-6">
+
+{% if parent %}
+    <p><a href="{% url 'page_detail' parent.id %}" class="text-blue-600 hover:underline">← 前のページへ (Page {{ parent.id }})</a></p>
+{% endif %}
+
+{% if next_page %}
+    <p><a href="{% url 'page_detail' next_page.id %}" class="text-blue-600 hover:underline">次のページへ (Page {{ next_page.id }}) →</a></p>
+{% endif %}
+
+<hr class="my-6">
+
+<h3 class="text-xl font-semibold mb-2">このページの分岐先</h3>
+<ul class="list-disc list-inside">
+    {% for child in children %}
+        <li>
+            <a href="{% url 'page_detail' child.id %}" class="text-blue-600 hover:underline">
+                Page {{ child.id }} by {{ child.author.username }} (優先度: {{ child.priority }})
+            </a>
+        </li>
+    {% empty %}
+        <li class="text-gray-500">分岐はまだありません。</li>
+    {% endfor %}
+</ul>
+
+<p class="mt-4">
+    <a href="{% url 'continue_page' page.id %}" class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
+        このページから続きを描く
+    </a>
+</p>
+<p class="mt-2">
+    <a href="{% url 'manga_detail' page.manga.id %}" class="text-gray-600 hover:underline">← マンガに戻る</a>
+</p>
+
+<script>
+document.getElementById("like-form").addEventListener("submit", function(event) {
+    event.preventDefault();
+    fetch(this.action, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            alert("いいねするにはログインが必要です。");
+            window.location.href = response.url;
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!data) return;
+        document.getElementById("like-count").innerText = data.likes;
+        if (data.already) {
+            document.getElementById("like-button").disabled = true;
+            document.getElementById("like-button").innerText = "👍 いいね済み";
+        }
     });
-    </script>
-
-    <hr>
-
-    {% if parent %}
-        <p><a href="{% url 'page_detail' parent.id %}">← 前のページへ (Page {{ parent.id }})</a></p>
-    {% endif %}
-
-    {% if next_page %}
-        <p><a href="{% url 'page_detail' next_page.id %}">次のページへ (Page {{ next_page.id }}) →</a></p>
-    {% endif %}
-
-    <hr>
-
-    <h3>このページの分岐先</h3>
-    <ul>
-        {% for child in children %}
-            <li>
-                <a href="{% url 'page_detail' child.id %}">
-                    Page {{ child.id }} by {{ child.author.username }} (優先度: {{ child.priority }})
-                </a>
-            </li>
-        {% empty %}
-            <li>分岐はまだありません。</li>
-        {% endfor %}
-    </ul>
-
-    <p>
-        <a href="{% url 'continue_page' page.id %}">このページから続きを描く</a>
-    </p>
-    <p>
-        <a href="{% url 'manga_detail' page.manga.id %}">← マンガに戻る</a>
-    </p>
-</body>
-</html>
+});
+</script>
+{% endblock %}

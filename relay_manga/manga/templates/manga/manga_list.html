@@ -1,19 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>マンガ一覧</title>
-</head>
-<body>
-    <h1>マンガ一覧</h1>
-    <ul>
-        {% for manga in mangas %}
-            <li>
-                <a href="{% url 'manga_detail' manga.id %}">{{ manga.title }}</a>
-                （作成者: {{ manga.created_by }}）
-            </li>
-        {% empty %}
-            <li>まだマンガがありません。</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}マンガ一覧{% endblock %}
+
+{% block content %}
+<h2 class="text-3xl font-bold mb-6">マンガ一覧</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for manga in mangas %}
+        <div class="p-4 bg-white rounded shadow hover:shadow-lg transition">
+            <h3 class="text-xl font-semibold mb-2">{{ manga.title }}</h3>
+            <p class="text-gray-500 text-sm mb-2">作成: {{ manga.created_by }} / {{ manga.created_at|date:"Y-m-d" }}</p>
+            <a href="{% url 'manga_detail' manga.id %}" 
+               class="text-blue-500 hover:underline">詳細を見る</a>
+        </div>
+    {% empty %}
+        <p>まだマンガがありません。</p>
+    {% endfor %}
+</div>
+{% endblock %}
