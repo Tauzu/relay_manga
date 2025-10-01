@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}新規登録{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded shadow">
+    <h2 class="text-2xl font-bold text-center mb-6">新規登録</h2>
+
+    {% if form.errors %}
+        <div class="mb-4 text-red-600">
+            入力内容に誤りがあります。修正してください。
+        </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label for="id_username" class="block font-semibold mb-1">ユーザー名</label>
+            {{ form.username }}
+        </div>
+
+        <div>
+            <label for="id_password1" class="block font-semibold mb-1">パスワード</label>
+            {{ form.password1 }}
+        </div>
+
+        <div>
+            <label for="id_password2" class="block font-semibold mb-1">パスワード（確認）</label>
+            {{ form.password2 }}
+        </div>
+
+        <button type="submit"
+            class="w-full bg-green-500 text-white py-2 rounded font-semibold hover:bg-green-600 transition">
+            登録する
+        </button>
+    </form>
+
+    <p class="mt-4 text-center text-gray-600">
+        すでにアカウントをお持ちの方は
+        <a href="{% url 'login' %}" class="text-blue-500 hover:underline">ログイン</a>
+    </p>
+</div>
+{% endblock %}

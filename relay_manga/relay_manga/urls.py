@@ -18,12 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from manga.views import CustomLoginView
+from manga.views import CustomLoginView, signup  # ← signup を追加
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # マンガ機能
     path('', include('manga.urls')),
-    path('accounts/login/', CustomLoginView.as_view(), name='login'),  # ✅ ここを差し替え
+
+    # 認証系
+    path('accounts/login/', CustomLoginView.as_view(), name='login'),
+    path('accounts/signup/', signup, name='signup'),   # ← 新規登録
     path('accounts/', include('django.contrib.auth.urls')),
 ]
 

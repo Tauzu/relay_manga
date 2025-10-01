@@ -183,3 +183,18 @@ class CustomLoginView(LoginView):
             page_id = next_url.split("/")[2]
             return reverse("page_detail", args=[page_id])
         return super().get_success_url()
+
+
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
+
+def signup(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)  # 登録後すぐログイン状態にする
+            return redirect("home")
+    else:
+        form = UserCreationForm()
+    return render(request, "registration/signup.html", {"form": form})
