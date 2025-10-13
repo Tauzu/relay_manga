@@ -3,59 +3,122 @@
 {% block title %}{{ page.manga.title }} - Page {{ page.id }}{% endblock %}
 
 {% block content %}
-<h2 class="text-3xl font-bold mb-4">{{ page.manga.title }} - Page {{ page.id }}</h2>
-<p class="text-gray-600 mb-2">Author: {{ page.author.username }}</p>
-<p class="text-gray-600 mb-4">作成日時: {{ page.created_at }}</p>
+<div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-6 relative">
 
-<p class="mb-4">いいね数: <span id="like-count">{{ page.likes }}</span></p>
+    <!-- 🏷 タイトル部分 -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">
+            <span class="text-blue-600 hover:underline cursor-pointer"
+                  onclick="window.location.href='{% url 'manga_detail' page.manga.id %}'">
+                {{ page.manga.title }}
+            </span>
+            <span class="text-gray-700"> - Page {{ page.id }}</span>
+        </h2>
+        <p class="text-gray-500">by {{ page.author.username }}</p>
+    </div>
 
-<form id="like-form" method="post" action="{% url 'like_page' page.id %}">
-    {% csrf_token %}
-    <button type="submit" id="like-button"
-        class="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 disabled:bg-gray-400 transition"
-        {% if liked %}disabled{% endif %}>
-        {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
-    </button>
-</form>
+    <!-- ❤️ いいねボタン -->
+    <div class="flex items-center gap-4 mb-6">
+        <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
+            {% csrf_token %}
+            <button type="submit" id="like-button"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400"
+                {% if liked %}disabled{% endif %}>
+                {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
+            </button>
+        </form>
+        <span class="text-gray-700 text-lg">❤️ <span id="like-count">{{ page.likes }}</span></span>
+    </div>
 
-<div class="mt-6">
-    <img src="{{ page.image.url }}" alt="Page image" class="max-w-3xl border rounded shadow">
+    <!-- 📄 ページ画像 ＋ 前後ボタン -->
+    <div class="flex items-center justify-center relative">
+
+        {% if parent %}
+            <a href="{% url 'page_detail' parent.id %}" 
+               class="absolute left-0 ml-4 bg-gray-100 hover:bg-gray-200 rounded-full p-3 shadow transition"
+               title="前のページへ">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+        {% endif %}
+
+        <div class="w-[600px] h-[600px] flex items-center justify-center bg-gray-50 border rounded-lg overflow-hidden shadow-md">
+            <img src="{{ page.image.url }}" alt="Page image" class="object-contain w-full h-full" />
+        </div>
+
+        {% if next_page or children %}
+        <div class="absolute right-0 flex flex-col items-center mr-4">
+
+            {% if next_page %}
+                <!-- 次のページボタン -->
+                <a href="{% url 'page_detail' next_page.id %}" 
+                   class="bg-gray-100 hover:bg-gray-200 rounded-full p-3 shadow transition mb-2"
+                   title="次のページへ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+            {% endif %}
+
+            <!-- 分岐ドロップダウン -->
+            {% if children %}
+                {% comment %} 「next_page」と同じIDの子は除外 {% endcomment %}
+                {% with has_other_children=False %}
+                    {% for child in children %}
+                        {% if not next_page or child.id != next_page.id %}
+                            {% with has_other_children=True %}{% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+
+                {% if children|length > 1 or not next_page %}
+                <div class="relative">
+                    <button id="branch-toggle"
+                            class="bg-gray-100 hover:bg-gray-200 rounded-full p-2 shadow transition"
+                            title="分岐先を選択">
+                        …
+                    </button>
+                    <div id="branch-menu"
+                        class="absolute right-0 mt-2 bg-white border rounded shadow-md hidden w-64 z-10">
+                        {% for child in children %}
+                            {% if not next_page or child.id != next_page.id %}
+                                <a href="{% url 'page_detail' child.id %}"
+                                class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    Page {{ child.id }} by {{ child.author.username }}
+                                    <span class="text-xs text-gray-400">（優先度: {{ child.priority }}）</span>
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 🚀 ボトム操作エリア -->
+    <div class="mt-8 flex justify-between items-center">
+        <a href="{% url 'manga_detail' page.manga.id %}" 
+           class="text-gray-500 hover:underline flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            マンガに戻る
+        </a>
+
+        <a href="{% url 'continue_page' page.id %}"
+           class="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            続きを描く
+        </a>
+    </div>
 </div>
 
-<hr class="my-6">
-
-{% if parent %}
-    <p><a href="{% url 'page_detail' parent.id %}" class="text-blue-600 hover:underline">← 前のページへ (Page {{ parent.id }})</a></p>
-{% endif %}
-
-{% if next_page %}
-    <p><a href="{% url 'page_detail' next_page.id %}" class="text-blue-600 hover:underline">次のページへ (Page {{ next_page.id }}) →</a></p>
-{% endif %}
-
-<hr class="my-6">
-
-<h3 class="text-xl font-semibold mb-2">このページの分岐先</h3>
-<ul class="list-disc list-inside">
-    {% for child in children %}
-        <li>
-            <a href="{% url 'page_detail' child.id %}" class="text-blue-600 hover:underline">
-                Page {{ child.id }} by {{ child.author.username }} (優先度: {{ child.priority }})
-            </a>
-        </li>
-    {% empty %}
-        <li class="text-gray-500">分岐はまだありません。</li>
-    {% endfor %}
-</ul>
-
-<p class="mt-4">
-    <a href="{% url 'continue_page' page.id %}" class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
-        このページから続きを描く
-    </a>
-</p>
-<p class="mt-2">
-    <a href="{% url 'manga_detail' page.manga.id %}" class="text-gray-600 hover:underline">← マンガに戻る</a>
-</p>
-
+<!-- 💬 スクリプト -->
 <script>
 document.getElementById("like-form").addEventListener("submit", function(event) {
     event.preventDefault();
@@ -78,10 +141,25 @@ document.getElementById("like-form").addEventListener("submit", function(event) 
         if (!data) return;
         document.getElementById("like-count").innerText = data.likes;
         if (data.already) {
-            document.getElementById("like-button").disabled = true;
-            document.getElementById("like-button").innerText = "👍 いいね済み";
+            const btn = document.getElementById("like-button");
+            btn.disabled = true;
+            btn.textContent = "👍 いいね済み";
         }
     });
 });
+
+// ✅ 分岐ボタン制御
+const toggle = document.getElementById("branch-toggle");
+const menu = document.getElementById("branch-menu");
+if (toggle && menu) {
+    toggle.addEventListener("click", () => {
+        menu.classList.toggle("hidden");
+    });
+    document.addEventListener("click", (e) => {
+        if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add("hidden");
+        }
+    });
+}
 </script>
 {% endblock %}
