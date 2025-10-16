@@ -6,7 +6,7 @@ from .forms import MangaForm, PageForm
 def home(request):
     return render(request, 'manga/home.html')
 
-# @login_required
+@login_required
 def create_manga(request):
     if request.method == 'POST':
         form = MangaForm(request.POST)
