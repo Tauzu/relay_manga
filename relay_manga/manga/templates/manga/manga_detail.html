@@ -1,89 +1,53 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block title %}{{ manga.title }}{% endblock %}
 
 {% block content %}
-<h2 class="text-3xl font-bold mb-6">{{ manga.title }}</h2>
+<div class="max-w-5xl mx-auto">
 
-<div id="network" class="w-full h-[600px] border border-gray-300 rounded"></div>
-<div id="tooltip"></div> <!-- ✅ ツールチップ要素 -->
+    <!-- 🏷 タイトル -->
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-3xl font-bold">{{ manga.title }}</h2>
+    </div>
 
+    <!-- ✅ 最初のページ追加ボタン（タイトル直下に配置） -->
+    {% if manga.pages.count == 0 %}
+        <div class="mb-6">
+            <a href="{% url 'create_page' manga.id %}" 
+               class="inline-flex items-center gap-2 px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                このマンガに最初のページを追加する
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- 🧩 ツリービュー -->
+    <div id="network" class="w-full h-[600px] border border-gray-300 rounded"></div>
+</div>
+
+<!-- ✅ ツールチップ -->
+<div id="tooltip"
+     style="position:absolute; padding:5px; background:white; border:1px solid #ccc; display:none; z-index:10;">
+</div>
+
+<!-- ✅ vis-network本体の読み込み -->
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+<!-- ✅ DjangoからJSへデータを渡す -->
 <script>
-    const nodes = new vis.DataSet({{ nodes|safe }});
-    const edges = new vis.DataSet({{ edges|safe }});
-
-    const container = document.getElementById("network");
-    const data = { nodes, edges };
-    const options = {
-        layout: {
-            hierarchical: {
-                enabled: true,
-                direction: "UD",
-                sortMethod: "directed",
-                levelSeparation: 150,
-                nodeSpacing: 120,
-                blockShifting: false,
-                edgeMinimization: false,
-                parentCentralization: false
-            }
-        },
-        physics: { enabled: false },
-        nodes: {
-            shape: "box",
-            margin: 10,
-            font: { multi: true }
-        },
-        edges: { arrows: "to" },
-        interaction: { hover: true }
-    };
-
-    const network = new vis.Network(container, data, options);
-
-    // ✅ カスタムツールチップ
-    const tooltip = document.createElement("div");
-    tooltip.id = "tooltip";
-    tooltip.style.position = "absolute";
-    tooltip.style.padding = "5px";
-    tooltip.style.background = "white";
-    tooltip.style.border = "1px solid #ccc";
-    tooltip.style.display = "none";
-    tooltip.style.zIndex = 10;
-    document.body.appendChild(tooltip);
-
-    network.on("hoverNode", function (params) {
-        const node = nodes.get(params.node);
-        if (node && node.imageUrl) {
-            tooltip.innerHTML = "<img src='" + node.imageUrl + "' width='100' height='100' style='object-fit:cover'>";
-            tooltip.style.left = (params.event.pageX + 10) + "px";
-            tooltip.style.top = (params.event.pageY + 10) + "px";
-            tooltip.style.display = "block";
-        }
-    });
-
-    network.on("blurNode", function () {
-        tooltip.style.display = "none";
-    });
-
-    // ✅ ノードクリックでページ詳細へ遷移
-    network.on("click", function (params) {
-        if (params.nodes.length > 0) {
-            const nodeId = params.nodes[0];
-            window.location.href = "/page/" + nodeId + "/";
-        }
-    });
+    window.mangaNodes = {{ nodes|safe }};
+    window.mangaEdges = {{ edges|safe }};
 </script>
 
-{% if manga.pages.count == 0 %}
-    <p class="mt-4">
-        <a href="{% url 'create_page' manga.id %}" 
-           class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
-           このマンガに最初のページを追加する
-        </a>
-    </p>
-{% endif %}
+<!-- ✅ 外部JSファイルの読み込み（最後に！） -->
+<script src="{% static 'manga/manga_detail.js' %}"></script>
 
-<p class="mt-4">
+<!-- 🔙 戻るリンク -->
+<p class="mt-6">
     <a href="{% url 'manga_list' %}" class="text-gray-600 hover:underline">
         ← マンガ一覧に戻る
     </a>
