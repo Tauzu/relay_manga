@@ -17,19 +17,6 @@
         <p class="text-gray-500">by {{ page.author.username }}</p>
     </div>
 
-    <!-- ❤️ いいねボタン -->
-    <div class="flex items-center gap-4 mb-6">
-        <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
-            {% csrf_token %}
-            <button type="submit" id="like-button"
-                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400"
-                {% if liked %}disabled{% endif %}>
-                {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
-            </button>
-        </form>
-        <span class="text-gray-700 text-lg">❤️ <span id="like-count">{{ page.likes }}</span></span>
-    </div>
-
     <!-- 📄 ページ画像 ＋ 前後ボタン -->
     <div class="flex items-center justify-center relative">
 
@@ -96,6 +83,21 @@
             {% endif %}
         </div>
         {% endif %}
+    </div>
+
+    <!-- ❤️ いいねボタン（画像の下に中央配置・いいね数を横に） -->
+    <div class="flex justify-center items-center gap-4 mt-6">
+        <form id="like-form" method="post" action="{% url 'like_page' page.id %}">
+            {% csrf_token %}
+            <button type="submit" id="like-button"
+                class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400"
+                {% if liked %}disabled{% endif %}>
+                {% if liked %}👍 いいね済み{% else %}👍 いいね{% endif %}
+            </button>
+        </form>
+        <span class="text-gray-700 text-lg flex items-center gap-1">
+            ❤️ <span id="like-count">{{ page.likes }}</span>
+        </span>
     </div>
 
     <!-- 🚀 ボトム操作エリア -->
