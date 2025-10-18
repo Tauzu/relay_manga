@@ -31,15 +31,24 @@ def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
     pages = list(manga.pages.select_related('author', 'parent'))
 
+    # --- 各ページの深さを計算 ---
+    def get_depth(page):
+        depth = 0
+        p = page.parent
+        while p:
+            depth += 1
+            p = p.parent
+        return depth
+
     nodes = []
     edges = []
     for page in pages:
         nodes.append({
             "id": page.id,
             "label": f"Page {page.id}\n{page.author.username}",
-            "imageUrl": page.thumbnail.url,  # ✅ カスタムツールチップ用
+            "imageUrl": page.thumbnail.url,
+            "level": get_depth(page),
         })
-
         if page.parent_id:
             edges.append({"from": page.parent_id, "to": page.id})
 
