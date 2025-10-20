@@ -13,7 +13,7 @@
                   onclick="window.location.href='{% url 'manga_detail' page.manga.id %}'">
                 {{ page.manga.title }}
             </span>
-            <span class="text-gray-700"> - Page {{ page.id }}</span>
+            <span class="text-gray-700"> - {{ page.display_title }}</span>
         </h2>
         <p class="text-gray-500">by {{ page.author.username }}</p>
     </div>

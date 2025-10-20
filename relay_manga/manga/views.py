@@ -45,7 +45,7 @@ def manga_detail(request, manga_id):
     for page in pages:
         nodes.append({
             "id": page.id,
-            "label": f"Page {page.id}\n{page.author.username}",
+            "label": f"{page.display_title}\n{page.author.username}",
             "imageUrl": page.thumbnail.url,
             "level": get_depth(page),
         })
@@ -56,28 +56,6 @@ def manga_detail(request, manga_id):
         'manga': manga,
         'nodes': json.dumps(nodes),
         'edges': json.dumps(edges),
-    })
-
-def manga_tree(request, manga_id):
-    manga = get_object_or_404(Manga, id=manga_id)
-    pages = manga.pages.all()
-
-    nodes = []
-    edges = []
-
-    for page in pages:
-        nodes.append({
-            "id": page.id,
-            "label": f"Page {page.id}\n{page.author.username}",
-            "title": f"<img src='{page.thumbnail.url}' width='120'>",  # ✅ サムネイルをツールチップに
-        })
-        if page.parent:
-            edges.append({"from": page.parent.id, "to": page.id})
-
-    return render(request, "manga/manga_tree.html", {
-        "manga": manga,
-        "nodes": nodes,
-        "edges": edges,
     })
 
 def page_detail(request, page_id):

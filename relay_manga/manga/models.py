@@ -15,6 +15,7 @@ class Manga(models.Model):
 class Page(models.Model):
     manga = models.ForeignKey(Manga, on_delete=models.CASCADE, related_name='pages')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100, blank=True, default="")
     image = models.ImageField(upload_to='pages/')
 
     # ✅ 正方形にトリミングしたサムネイル（100x100）
@@ -33,8 +34,13 @@ class Page(models.Model):
     )
     likes = models.PositiveIntegerField(default=0)  # 👍 いいね数
 
+    @property
+    def display_title(self):
+        """空なら 'Page {id}' を返す"""
+        return self.title or f"Page {self.id}"
+
     def __str__(self):
-        return f"{self.manga.title} - Page {self.id} by {self.author.username}"
+        return f"{self.manga.title} - {self.display_title} by {self.author.username}"
 
     def count_descendants(self):
         """再帰的にすべての子孫ページ数を数える"""

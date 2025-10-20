@@ -9,4 +9,7 @@ class MangaForm(forms.ModelForm):
 class PageForm(forms.ModelForm):
     class Meta:
         model = Page
-        fields = ['image']   # ← parent を外す
+        fields = ['title', 'image', 'parent']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'border rounded px-2 py-1 w-full', 'placeholder': 'ページタイトル'}),
+        }

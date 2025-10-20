@@ -13,10 +13,18 @@
 
 <form method="post" enctype="multipart/form-data" class="space-y-4">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" 
-        class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
-        保存
+    <div>
+        <label for="id_title" class="block font-semibold mb-1">ページタイトル</label>
+        {{ form.title }}
+    </div>
+
+    <div>
+        <label for="id_image" class="block font-semibold mb-1">画像ファイル</label>
+        {{ form.image }}
+    </div>
+
+    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+        作成する
     </button>
 </form>
 
