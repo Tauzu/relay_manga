@@ -49,11 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tooltip.style.display = "none";
     });
 
-    // ✅ ノードクリックでページ詳細へ遷移
-    network.on("click", (params) => {
+    // ノードクリックイベント
+    network.on("click", function (params) {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
-            window.location.href = `/page/${nodeId}/`;
+            window.location.href = `/viewer/${nodeId}/`;  // ✅ viewer ページへ遷移
         }
     });
 });

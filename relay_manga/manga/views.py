@@ -85,6 +85,34 @@ def page_detail(request, page_id):
         'liked': liked,   # ← テンプレートに渡す
     })
 
+# manga/views.py
+def page_viewer(request, page_id):
+    """親→選択ページ→優先子ルートをまとめて表示"""
+    page = get_object_or_404(Page, id=page_id)
+
+    # 親を上方向にすべて取得
+    ancestors = []
+    p = page.parent
+    while p:
+        ancestors.insert(0, p)
+        p = p.parent
+
+    # 子を優先度順にたどって葉ノードまで
+    descendants = []
+    c = page
+    while c.children.exists():
+        next_child = max(c.children.all(), key=lambda x: x.likes + x.children.count())
+        descendants.append(next_child)
+        c = next_child
+
+    # 全ルートリスト
+    path_pages = ancestors + [page] + descendants
+
+    return render(request, "manga/viewer.html", {
+        "pages": path_pages,
+        "root_page": page,
+    })
+
 @login_required
 def create_page(request, manga_id, parent_id=None):
     manga = get_object_or_404(Manga, id=manga_id)
