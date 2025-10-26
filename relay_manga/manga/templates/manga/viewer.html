@@ -1,135 +1,60 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ root_page.manga.title }} - ビューワー{% endblock %}
+{% block title %}ページビューワー{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-6 text-center">
+<div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-6">
 
-    <!-- 🏷 タイトル -->
-    <div class="text-left mb-6">
-    <h2 class="text-lg font-semibold text-gray-800">
-        <span class="cursor-pointer hover:underline"
-            onclick="window.location.href='{% url 'manga_detail' root_page.manga.id %}'">
-        {{ root_page.manga.title }}
-        </span>
-        <span class="text-gray-500"> &gt; {{ pages.0.display_title }} ({{ pages.0.id }})</span>
-    </h2>
-    </div>
+    <!-- 🔹 タイトル -->
+    <div id="viewer-title" class="text-lg font-semibold text-gray-800 mb-4"></div>
 
-    <!-- 📄 ページ画像とナビゲーション -->
+    <!-- 📄 画像表示エリア -->
     <div class="relative flex items-center justify-center">
-        <button id="prev-slide" class="absolute left-0 text-3xl p-3 text-gray-500 hover:text-gray-700">&#10094;</button>
-        <div class="w-[600px] h-[600px] bg-gray-100 border rounded-lg flex items-center justify-center overflow-hidden">
-        <img id="slide-image"
-            src="{{ pages.0.image.url }}"
-            class="object-contain w-full h-full transition-all duration-300 ease-in-out opacity-100"
-            alt="Page image">
-        </div>
-        <button id="next-slide" class="absolute right-0 text-3xl p-3 text-gray-500 hover:text-gray-700">&#10095;</button>
+        <button id="prev-btn"
+                class="absolute left-0 ml-4 bg-gray-100 hover:bg-gray-200 rounded-full p-3 shadow transition"
+                title="前のページへ">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        </button>
+
+        <img id="viewer-image"
+            src=""
+            alt="Page image"
+            class="object-contain w-[600px] h-[600px] border rounded shadow-md transition-all duration-500 ease-in-out opacity-100" />
+
+        <button id="next-btn"
+                class="absolute right-0 mr-4 bg-gray-100 hover:bg-gray-200 rounded-full p-3 shadow transition"
+                title="次のページへ">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        </button>
     </div>
 
-    <!-- 📝 ページタイトル -->
-    <div id="caption" class="mt-4 text-gray-700 font-semibold">
-        Page {{ pages.0.id }} — {{ pages.0.display_title }}
-    </div>
-
-    <!-- ❤️ いいねボタン -->
-    <div class="flex justify-center items-center gap-4 mt-4">
-        <form id="like-form" method="post" action="{% url 'like_page' pages.0.id %}">
+    <!-- ❤️ いいね -->
+    <div class="flex justify-center items-center gap-4 mt-6">
+        <form id="like-form" method="post">
         {% csrf_token %}
         <button type="submit" id="like-button"
-            class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">
+                class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">
             👍 いいね
         </button>
         </form>
         <span class="text-gray-700 text-lg flex items-center gap-1">
-        ❤️ <span id="like-count">{{ pages.0.likes }}</span>
+        ❤️ <span id="like-count"></span>
         </span>
     </div>
 
-    <p class="mt-6">
-        <a href="{% url 'manga_detail' root_page.manga.id %}" class="text-blue-500 hover:underline">← ツリーに戻る</a>
-    </p>
-    </div>
+</div>
 
-    <!-- 💬 スクリプト -->
-    <script>
-    // 🔹 ページ配列をサーバー側から受け取る
-    const pages = [
-        {% for p in pages %}
-        {
-        id: {{ p.id }},
-        title: "{{ p.display_title|escapejs }}",
-        image: "{{ p.image.url }}",
-        likes: {{ p.likes }},
-        like_url: "{% url 'like_page' p.id %}"
-        },
-        {% endfor %}
-    ];
-
-    let index = 0;
-
-    const img = document.getElementById("slide-image");
-    const caption = document.getElementById("caption");
-    const likeCount = document.getElementById("like-count");
-    const likeButton = document.getElementById("like-button");
-    const likeForm = document.getElementById("like-form");
-
-    // 🔹 ページ切り替え処理
-    function changeSlide() {
-        img.style.opacity = "0";
-        setTimeout(() => {
-        const current = pages[index];
-        img.src = current.image;
-        caption.textContent = `Page ${current.id} — ${current.title}`;
-        likeCount.textContent = current.likes;
-        likeForm.action = current.like_url;
-        img.style.opacity = "1";
-        }, 200);
-    }
-
-    document.getElementById("next-slide").onclick = () => {
-        if (index < pages.length - 1) {
-        index++;
-        changeSlide();
-        }
-    };
-
-    document.getElementById("prev-slide").onclick = () => {
-        if (index > 0) {
-        index--;
-        changeSlide();
-        }
-    };
-
-    // 🔹 いいね処理（AJAX）
-    likeForm.addEventListener("submit", function(event) {
-        event.preventDefault();
-        fetch(this.action, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": this.querySelector("[name=csrfmiddlewaretoken]").value,
-            "X-Requested-With": "XMLHttpRequest"
-        }
-        })
-        .then(response => {
-        if (response.redirected) {
-            alert("いいねするにはログインが必要です。");
-            window.location.href = response.url;
-            return;
-        }
-        return response.json();
-        })
-        .then(data => {
-        if (!data) return;
-        likeCount.textContent = data.likes;
-        pages[index].likes = data.likes; // ✅ ローカル配列も更新
-        if (data.already) {
-            likeButton.disabled = true;
-            likeButton.textContent = "👍 いいね済み";
-        }
-        });
-    });
+<script>
+window.viewerData = {
+    pages: {{ pages_json|safe }},
+    csrfToken: "{{ csrf_token }}"
+};
 </script>
+
+<script src="{% static 'manga/viewer.js' %}"></script>
 {% endblock %}

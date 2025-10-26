@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import Manga, Page, PageLike
 from .forms import MangaForm, PageForm
+import json
 
 def home(request):
     return render(request, 'manga/home.html')
@@ -24,8 +25,6 @@ def create_manga(request):
 def manga_list(request):
     mangas = Manga.objects.all().order_by('-created_at')
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
-
-import json
 
 def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
@@ -85,32 +84,72 @@ def page_detail(request, page_id):
         'liked': liked,   # ← テンプレートに渡す
     })
 
-# manga/views.py
-def page_viewer(request, page_id):
-    """親→選択ページ→優先子ルートをまとめて表示"""
-    page = get_object_or_404(Page, id=page_id)
+from django.urls import reverse
+from django.core.serializers.json import DjangoJSONEncoder
 
-    # 親を上方向にすべて取得
+def get_page_chain(page):
+    """
+    クリックされたページを基点に、
+    - すべての親を再帰的に上へ
+    - 自分自身
+    - 優先度最大の子孫を下へ
+    を連結したリストを返す。
+    """
+
+    # 上方向（親を再帰的にたどる）
     ancestors = []
     p = page.parent
     while p:
         ancestors.insert(0, p)
         p = p.parent
 
-    # 子を優先度順にたどって葉ノードまで
+    # 下方向（最も優先度の高い子孫を再帰的に）
     descendants = []
-    c = page
-    while c.children.exists():
-        next_child = max(c.children.all(), key=lambda x: x.likes + x.children.count())
-        descendants.append(next_child)
-        c = next_child
+    current = page
+    while True:
+        children = list(current.children.all())
+        if not children:
+            break
+        # 優先度 = いいね数 + 子孫数
+        def priority(c):
+            return c.likes + count_descendants(c)
+        best_child = max(children, key=priority)
+        descendants.append(best_child)
+        current = best_child
 
-    # 全ルートリスト
-    path_pages = ancestors + [page] + descendants
+    return ancestors + [page] + descendants
+
+
+def count_descendants(page):
+    """すべての子孫ページ数をカウント"""
+    total = 0
+    for child in page.children.all():
+        total += 1 + count_descendants(child)
+    return total
+
+
+def page_viewer(request, page_id):
+    """クリックされたノードのビューワーモードを表示"""
+    root_page = get_object_or_404(Page, id=page_id)
+    pages = get_page_chain(root_page)
+
+    # JSで使うページ情報をJSON化
+    pages_json = json.dumps([
+        {
+            "id": p.id,
+            "title": p.display_title,
+            "image": p.image.url if p.image else "",
+            "likes": p.likes,
+            "manga_title": p.manga.title,
+            "manga_url": reverse("manga_detail", args=[p.manga.id]),
+            "like_url": reverse("like_page", args=[p.id]),
+        }
+        for p in pages
+    ], cls=DjangoJSONEncoder)
 
     return render(request, "manga/viewer.html", {
-        "pages": path_pages,
-        "root_page": page,
+        "pages": pages,
+        "pages_json": pages_json,
     })
 
 @login_required
