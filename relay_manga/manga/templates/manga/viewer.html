@@ -58,17 +58,8 @@
 
 <!-- 🔹 ページデータを渡す -->
 <script>
-    const pages = [
-        {% for p in pages %}
-        {
-        id: {{ p.id }},
-        title: "{{ p.display_title|escapejs }}",
-        image: "{{ p.image.url }}",
-        likes: {{ p.likes }},
-        like_url: "{% url 'like_page' p.id %}"
-        },
-        {% endfor %}
-    ];
+    window.viewerPages = {{ pages_json|safe }};
+    window.initialIndex = {{ current_index }};
 </script>
 
 <!-- JS 読み込み -->

@@ -8,7 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const prevBtn = document.getElementById("prev-btn");
     const nextBtn = document.getElementById("next-btn");
 
-    let currentIndex = 0;
+    // 🔹 ページデータをサーバーから受け取る
+    const pages = window.viewerPages || [];
+    let currentIndex = window.initialIndex || 0; // ✅ 初期ページを現在のノードに設定
 
     // ✅ ページ切り替え処理
     function updateViewer(newIndex, direction = "next") {
@@ -16,8 +18,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const newPage = pages[newIndex];
 
-        // フェードアニメーション
-        image.classList.add("opacity-0", direction === "next" ? "translate-x-10" : "-translate-x-10");
+        // 🔹 フェードアニメーション
+        image.classList.add(
+        "opacity-0",
+        direction === "next" ? "translate-x-10" : "-translate-x-10"
+        );
         setTimeout(() => {
         image.src = newPage.image;
         title.textContent = newPage.title;
@@ -29,10 +34,27 @@ document.addEventListener("DOMContentLoaded", () => {
         image.classList.add("opacity-100");
         }, 250);
 
-        // ボタン状態更新
+        // ✅ ボタン状態更新
         currentIndex = newIndex;
-        prevBtn.disabled = currentIndex === 0;
-        nextBtn.disabled = currentIndex === pages.length - 1;
+        updateButtonStates();
+    }
+
+    // ✅ ボタンの有効／無効状態を切り替え
+    function updateButtonStates() {
+        const isFirst = currentIndex === 0;
+        const isLast = currentIndex === pages.length - 1;
+
+        prevBtn.disabled = isFirst;
+        nextBtn.disabled = isLast;
+
+        // グレーアウト＋無反応化
+        [prevBtn, nextBtn].forEach((btn, i) => {
+        const disabled = btn.disabled;
+        btn.classList.toggle("opacity-40", disabled);
+        btn.classList.toggle("cursor-default", disabled);
+        btn.classList.toggle("hover:bg-gray-200", !disabled);
+        btn.style.pointerEvents = disabled ? "none" : "auto"; // ✅ 無反応に
+        });
     }
 
     // ✅ 矢印ボタン制御
@@ -75,6 +97,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // ✅ 初期状態
-    prevBtn.disabled = currentIndex === 0;
-    nextBtn.disabled = currentIndex === pages.length - 1;
+    updateViewer(currentIndex);
+    updateButtonStates();
 });
