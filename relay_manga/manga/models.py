@@ -53,10 +53,13 @@ class Page(models.Model):
     def likes(self):
         return self.likes_rel.count()  # 👍 PageLike を数える
 
-    @property
-    def priority(self):
-        """優先度 = likes + 子孫の数"""
-        return self.likes + self.count_descendants()
+    # --- 💡 優先度（いいね数＋子孫の総数） ---
+    def get_priority(self):
+        """このページの優先度（いいね数＋子孫の総数）を返す"""
+        total = self.likes  # likes フィールドがある前提
+        for child in self.children.all():
+            total += 1 + child.get_priority()  # 子も再帰的に足す
+        return total
 
 class PageLike(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

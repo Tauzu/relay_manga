@@ -84,72 +84,53 @@ def page_detail(request, page_id):
         'liked': liked,   # ← テンプレートに渡す
     })
 
-from django.urls import reverse
-from django.core.serializers.json import DjangoJSONEncoder
-
-def get_page_chain(page):
-    """
-    クリックされたページを基点に、
-    - すべての親を再帰的に上へ
-    - 自分自身
-    - 優先度最大の子孫を下へ
-    を連結したリストを返す。
-    """
-
-    # 上方向（親を再帰的にたどる）
-    ancestors = []
-    p = page.parent
-    while p:
-        ancestors.insert(0, p)
-        p = p.parent
-
-    # 下方向（最も優先度の高い子孫を再帰的に）
-    descendants = []
-    current = page
-    while True:
-        children = list(current.children.all())
-        if not children:
-            break
-        # 優先度 = いいね数 + 子孫数
-        def priority(c):
-            return c.likes + count_descendants(c)
-        best_child = max(children, key=priority)
-        descendants.append(best_child)
-        current = best_child
-
-    return ancestors + [page] + descendants
-
-
-def count_descendants(page):
-    """すべての子孫ページ数をカウント"""
-    total = 0
-    for child in page.children.all():
-        total += 1 + count_descendants(child)
-    return total
-
-
 def page_viewer(request, page_id):
-    """クリックされたノードのビューワーモードを表示"""
-    root_page = get_object_or_404(Page, id=page_id)
-    pages = get_page_chain(root_page)
+    """クリックしたページから、親→子（優先度順）までのリストを構築してビューアに渡す"""
+    page = get_object_or_404(Page, id=page_id)
 
-    # JSで使うページ情報をJSON化
-    pages_json = json.dumps([
+    # 🔹 1. 親ページをすべて再帰的に遡る
+    ancestors = []
+    current = page.parent
+    while current:
+        ancestors.insert(0, current)  # 先頭に追加
+        current = current.parent
+
+    # 🔹 2. 優先度の高い子を再帰的にたどる
+    descendants = []
+    def traverse_best_child(p):
+        children = list(p.children.all())
+        if not children:
+            return
+        best_child = max(children, key=lambda c: c.get_priority())
+        descendants.append(best_child)
+        traverse_best_child(best_child)
+
+    traverse_best_child(page)
+
+    # 🔹 3. リストを統合（親 → 現在 → 優先子孫）
+    ordered_pages = ancestors + [page] + descendants
+
+    # 🔹 4. JSON 用データ（画像・いいね情報付き）
+    pages_data = [
         {
             "id": p.id,
             "title": p.display_title,
-            "image": p.image.url if p.image else "",
+            "image": p.image.url if getattr(p, "image", None) else "",
             "likes": p.likes,
-            "manga_title": p.manga.title,
-            "manga_url": reverse("manga_detail", args=[p.manga.id]),
-            "like_url": reverse("like_page", args=[p.id]),
+            "like_url": f"/like/{p.id}/",
+            "author": p.author.username,
         }
-        for p in pages
-    ], cls=DjangoJSONEncoder)
+        for p in ordered_pages
+    ]
+
+    # 🔹 5. 先頭ページをテンプレートに渡す（初期表示用）
+    first_page = ordered_pages[0] if ordered_pages else None
 
     return render(request, "manga/viewer.html", {
-        "pages": pages,
-        "pages_json": pages_json,
+        "manga": page.manga,
+        "pages": ordered_pages,
+        "pages_json": pages_data,
+        "first_page": first_page,
     })
 
 @login_required

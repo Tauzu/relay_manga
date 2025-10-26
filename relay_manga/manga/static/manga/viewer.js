@@ -1,70 +1,80 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const data = window.viewerData.pages;
-    const csrfToken = window.viewerData.csrfToken;
-
-    let index = 0;
-    const imageEl = document.getElementById("viewer-image");
-    const titleEl = document.getElementById("viewer-title");
-    const likeCount = document.getElementById("like-count");
+    const image = document.getElementById("viewer-image");
+    const title = document.getElementById("viewer-title");
+    const idSpan = document.getElementById("viewer-id");
+    const likeForm = document.getElementById("like-form");
     const likeButton = document.getElementById("like-button");
-    const form = document.getElementById("like-form");
-
+    const likeCount = document.getElementById("like-count");
     const prevBtn = document.getElementById("prev-btn");
     const nextBtn = document.getElementById("next-btn");
 
-    function updateViewer() {
-        const page = data[index];
-        imageEl.style.opacity = 0;
-        setTimeout(() => {
-        imageEl.src = page.image;
-        titleEl.innerHTML = `
-            <span class="text-black hover:underline cursor-pointer" 
-                onclick="window.location.href='${page.manga_url}'">
-            ${page.manga_title}
-            </span>
-            > ${page.title} (ID: ${page.id})
-        `;
-        likeCount.textContent = page.likes;
-        form.action = page.like_url;
-        imageEl.style.opacity = 1;
-        }, 200);
+    let currentIndex = 0;
 
-        prevBtn.disabled = index === 0;
-        nextBtn.disabled = index === data.length - 1;
+    // ✅ ページ切り替え処理
+    function updateViewer(newIndex, direction = "next") {
+        if (newIndex < 0 || newIndex >= pages.length) return;
+
+        const newPage = pages[newIndex];
+
+        // フェードアニメーション
+        image.classList.add("opacity-0", direction === "next" ? "translate-x-10" : "-translate-x-10");
+        setTimeout(() => {
+        image.src = newPage.image;
+        title.textContent = newPage.title;
+        idSpan.textContent = newPage.id;
+        likeCount.textContent = newPage.likes;
+        likeForm.action = newPage.like_url;
+
+        image.classList.remove("opacity-0", "translate-x-10", "-translate-x-10");
+        image.classList.add("opacity-100");
+        }, 250);
+
+        // ボタン状態更新
+        currentIndex = newIndex;
+        prevBtn.disabled = currentIndex === 0;
+        nextBtn.disabled = currentIndex === pages.length - 1;
     }
 
-    // いいね
-    form.addEventListener("submit", (e) => {
+    // ✅ 矢印ボタン制御
+    prevBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        fetch(form.action, {
+        if (currentIndex > 0) updateViewer(currentIndex - 1, "prev");
+    });
+
+    nextBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (currentIndex < pages.length - 1) updateViewer(currentIndex + 1, "next");
+    });
+
+    // ✅ いいね処理
+    likeForm.addEventListener("submit", function (event) {
+        event.preventDefault();
+        fetch(this.action, {
         method: "POST",
         headers: {
-            "X-CSRFToken": csrfToken,
-            "X-Requested-With": "XMLHttpRequest"
-        }
+            "X-CSRFToken": this.querySelector("[name=csrfmiddlewaretoken]").value,
+            "X-Requested-With": "XMLHttpRequest",
+        },
         })
-        .then(res => res.json())
-        .then(json => {
-            likeCount.textContent = json.likes;
+        .then((response) => {
+            if (response.redirected) {
+            alert("いいねするにはログインが必要です。");
+            window.location.href = response.url;
+            return;
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (!data) return;
+            likeCount.textContent = data.likes;
+            if (data.already) {
             likeButton.disabled = true;
             likeButton.textContent = "👍 いいね済み";
+            }
         });
     });
 
-    // スライド
-    prevBtn.addEventListener("click", () => {
-        if (index > 0) {
-        index--;
-        updateViewer();
-        }
-    });
-    nextBtn.addEventListener("click", () => {
-        if (index < data.length - 1) {
-        index++;
-        updateViewer();
-        }
-    });
-
-    // 初期表示
-    updateViewer();
+    // ✅ 初期状態
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === pages.length - 1;
 });

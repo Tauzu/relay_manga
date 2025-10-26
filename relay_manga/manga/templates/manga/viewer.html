@@ -1,60 +1,76 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}ページビューワー{% endblock %}
+{% block title %}{{ manga.title }} Viewer{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-6">
+<div class="max-w-5xl mx-auto bg-white rounded-lg shadow p-6 relative">
 
-    <!-- 🔹 タイトル -->
-    <div id="viewer-title" class="text-lg font-semibold text-gray-800 mb-4"></div>
+    <!-- 🏷 タイトル部分 -->
+    <div class="mb-6 text-lg text-gray-800 font-semibold">
+        <span class="cursor-pointer hover:underline"
+            onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
+        {{ manga.title }}
+        </span>
+        &gt;
+        <span id="viewer-title">{{ first_page.display_title }}</span>
+        <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
+    </div>
 
     <!-- 📄 画像表示エリア -->
     <div class="relative flex items-center justify-center">
-    <button id="prev-btn"
-            class="absolute left-0 ml-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-            title="前のページへ">
+        <button id="prev-btn"
+                class="absolute left-0 ml-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
+                title="前のページへ">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-    </button>
+        </button>
 
-    <img id="viewer-image"
-        src=""
-        alt="Page image"
-        class="object-contain w-[600px] h-[600px] border rounded shadow-md transition-all duration-500 ease-in-out opacity-100" />
+        <img id="viewer-image"
+            src="{{ first_page.image.url|default_if_none:'' }}"
+            alt="Page image"
+            class="object-contain w-[600px] h-[600px] border rounded shadow-md transition-all duration-500 ease-in-out opacity-100" />
 
-    <button id="next-btn"
-            class="absolute right-0 mr-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-            title="次のページへ">
+        <button id="next-btn"
+                class="absolute right-0 mr-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
+                title="次のページへ">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-    </button>
+        </button>
     </div>
 
-    <!-- ❤️ いいね -->
+    <!-- ❤️ いいねボタン -->
     <div class="flex justify-center items-center gap-4 mt-6">
         <form id="like-form" method="post">
         {% csrf_token %}
         <button type="submit" id="like-button"
-                class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">
+            class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">
             👍 いいね
         </button>
         </form>
         <span class="text-gray-700 text-lg flex items-center gap-1">
-        ❤️ <span id="like-count"></span>
+        ❤️ <span id="like-count">{{ first_page.likes }}</span>
         </span>
     </div>
-
 </div>
 
+<!-- 🔹 ページデータを渡す -->
 <script>
-window.viewerData = {
-    pages: {{ pages_json|safe }},
-    csrfToken: "{{ csrf_token }}"
-};
+    const pages = [
+        {% for p in pages %}
+        {
+        id: {{ p.id }},
+        title: "{{ p.display_title|escapejs }}",
+        image: "{{ p.image.url }}",
+        likes: {{ p.likes }},
+        like_url: "{% url 'like_page' p.id %}"
+        },
+        {% endfor %}
+    ];
 </script>
 
+<!-- JS 読み込み -->
 <script src="{% static 'manga/viewer.js' %}"></script>
 {% endblock %}
