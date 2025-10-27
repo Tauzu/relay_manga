@@ -135,6 +135,22 @@ def page_viewer(request, page_id):
         "current_index": current_index,  # ✅ JS側でもどこから始まるか分かるように渡す
     })
 
+def page_branches_json(request, page_id):
+    """指定ページの分岐（子ページ）を返す"""
+    page = get_object_or_404(Page, id=page_id)
+    children = page.children.all()
+
+    data = [
+        {
+            "id": child.id,
+            "title": child.display_title,
+            "author": child.author.username,
+            "priority": child.get_priority(),
+        }
+        for child in children
+    ]
+    return JsonResponse({"branches": data})
+
 @login_required
 def create_page(request, manga_id, parent_id=None):
     manga = get_object_or_404(Manga, id=manga_id)

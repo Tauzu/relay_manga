@@ -68,6 +68,47 @@ document.addEventListener("DOMContentLoaded", () => {
         if (currentIndex < pages.length - 1) updateViewer(currentIndex + 1, "next");
     });
 
+    // 🌿 分岐ボタン制御
+    const branchToggle = document.getElementById("branch-toggle");
+    const branchMenu = document.getElementById("branch-menu");
+
+    if (branchToggle && branchMenu) {
+    branchToggle.addEventListener("click", async () => {
+        branchMenu.classList.toggle("hidden");
+
+        // すでに開いていたら閉じる
+        if (!branchMenu.classList.contains("hidden")) {
+        // 現在のページIDを取得
+        const currentPage = pages[currentIndex];
+        const res = await fetch(`/page/${currentPage.id}/branches/`);
+        const data = await res.json();
+
+        // メニュー初期化
+        branchMenu.innerHTML = "";
+        if (data.branches.length === 0) {
+            branchMenu.innerHTML = `<div class="px-3 py-2 text-sm text-gray-500">分岐はありません。</div>`;
+            return;
+        }
+
+        // 分岐項目を追加
+        data.branches.forEach(b => {
+            const item = document.createElement("a");
+            item.href = `/page/${b.id}/viewer/`;
+            item.className = "block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100";
+            item.textContent = `${b.title} by ${b.author}（優先度: ${b.priority}）`;
+            branchMenu.appendChild(item);
+        });
+        }
+    });
+
+    // 外クリックで閉じる
+    document.addEventListener("click", e => {
+        if (!branchToggle.contains(e.target) && !branchMenu.contains(e.target)) {
+        branchMenu.classList.add("hidden");
+        }
+    });
+    }
+
     // ✅ いいね処理
     likeForm.addEventListener("submit", function (event) {
         event.preventDefault();

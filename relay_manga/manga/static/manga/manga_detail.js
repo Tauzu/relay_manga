@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     network.on("click", function (params) {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
-            window.location.href = `/viewer/${nodeId}/`;  // ✅ viewer ページへ遷移
+            window.location.href = `/page/${nodeId}/viewer/`;  // ✅ viewer ページへ遷移
         }
     });
 });
