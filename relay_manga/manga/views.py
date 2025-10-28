@@ -235,6 +235,20 @@ def like_page(request, page_id):
         "already": not created
     })
 
+def page_like_status(request, page_id):
+    """指定ページに対するログインユーザーのいいね状態を返す"""
+    page = get_object_or_404(Page, id=page_id)
+
+    liked = False
+    if request.user.is_authenticated:
+        liked = PageLike.objects.filter(user=request.user, page=page).exists()
+
+    return JsonResponse({
+        "liked": liked,
+        "likes": page.likes
+    })
+
+
 from django.contrib.auth.views import LoginView
 from django.urls import reverse
 

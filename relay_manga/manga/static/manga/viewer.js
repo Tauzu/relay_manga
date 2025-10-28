@@ -38,7 +38,24 @@ document.addEventListener("DOMContentLoaded", () => {
             // スライド完了後アニメーション解除
             image.classList.remove("opacity-0", "translate-x-10", "-translate-x-10");
             image.classList.add("opacity-100");
-        }, 200);
+
+            // ✅ ページ表示ごとに「いいね状態」をサーバーに問い合わせ
+            fetch(`/page/${newPage.id}/like_status/`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            })
+            .then(res => res.json())
+            .then(data => {
+                likeCount.textContent = data.likes;
+                if (data.liked) {
+                    likeButton.disabled = true;
+                    likeButton.textContent = "👍 いいね済み";
+                } else {
+                    likeButton.disabled = false;
+                    likeButton.textContent = "👍 いいね";
+                }
+            });
+
+        }, 250);
 
         // 状態更新
         currentIndex = newIndex;
