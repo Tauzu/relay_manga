@@ -85,7 +85,7 @@ def page_detail(request, page_id):
     })
 
 def page_viewer(request, page_id):
-    """クリックしたページを中心に、親→子（優先度順）のリストを構築してビューアに渡す"""
+    """クリックしたページから、親→子（優先度順）までのリストを構築してビューアに渡す"""
     page = get_object_or_404(Page, id=page_id)
 
     # 🔹 1. 親ページをすべて再帰的に遡る
@@ -107,32 +107,42 @@ def page_viewer(request, page_id):
 
     traverse_best_child(page)
 
-    # 🔹 3. リスト統合（親 → 現在 → 優先子孫）
+    # 🔹 3. リストを統合（親 → 現在 → 優先子孫）
     ordered_pages = ancestors + [page] + descendants
 
-    # 🔹 4. JSON データ
-    pages_data = [
-        {
+    # 🔹 4. JSON 用データ
+    pages_data = []
+    for p in ordered_pages:
+        # 子ページ（分岐先）も含める
+        children_data = [
+            {
+                "id": c.id,
+                "title": c.display_title,
+                "author": c.author.username,
+                "priority": c.get_priority(),
+            }
+            for c in p.children.all()
+        ]
+
+        pages_data.append({
             "id": p.id,
             "title": p.display_title,
-            "image": p.image.url if getattr(p, "image", None) else "",
+            "image": p.image.url,
             "likes": p.likes,
-            "like_url": f"/like/{p.id}/",
+            "like_url": f"/page/{p.id}/like/",
             "author": p.author.username,
-        }
-        for p in ordered_pages
-    ]
+            "children": children_data,  # ✅ 追加！
+        })
 
-    # 🔹 5. 初期表示をクリックページに変更
-    # （＝ ordered_pages.index(page) に対応）
+    # 現在のページのインデックスを特定
     current_index = ordered_pages.index(page)
 
     return render(request, "manga/viewer.html", {
         "manga": page.manga,
         "pages": ordered_pages,
         "pages_json": pages_data,
-        "first_page": page,        # ✅ クリックしたページを初期表示
-        "current_index": current_index,  # ✅ JS側でもどこから始まるか分かるように渡す
+        "current_index": current_index,
+        "first_page": page,
     })
 
 def page_branches_json(request, page_id):
