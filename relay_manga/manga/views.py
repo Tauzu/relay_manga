@@ -221,15 +221,20 @@ def page_list(request):
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from urllib.parse import urlencode
 
-@login_required
 @require_POST
 def like_page(request, page_id):
     page = get_object_or_404(Page, id=page_id)
 
-    # ✅ すでにいいねしているか確認
-    like, created = PageLike.objects.get_or_create(user=request.user, page=page)
+    # ✅ 未ログイン時：ログインページへリダイレクト（戻り先は viewer ページ）
+    if not request.user.is_authenticated:
+        next_url = f"/page/{page_id}/viewer/"
+        login_url = f"/accounts/login/?{urlencode({'next': next_url})}"
+        return redirect(login_url)
 
+    # すでにいいね済みかチェック
+    like, created = PageLike.objects.get_or_create(user=request.user, page=page)
     return JsonResponse({
         "likes": page.likes,
         "already": not created
@@ -250,16 +255,13 @@ def page_like_status(request, page_id):
 
 
 from django.contrib.auth.views import LoginView
-from django.urls import reverse
 
 class CustomLoginView(LoginView):
+    template_name = "registration/login.html"
+
     def get_success_url(self):
-        next_url = self.get_redirect_url()  # ログインフォームの hidden input に入ってる next の値
-        if next_url and "/like/" in next_url:
-            # 例: /page/3/like/ → /page/3/
-            page_id = next_url.split("/")[2]
-            return reverse("page_detail", args=[page_id])
-        return super().get_success_url()
+        next_url = self.request.GET.get("next") or self.request.POST.get("next")
+        return next_url or super().get_success_url()
 
 
 from django.contrib.auth.forms import UserCreationForm
