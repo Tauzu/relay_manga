@@ -55,6 +55,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
+            // ✅ 続きを描くリンク更新
+            const continueLink = document.getElementById("continue-link");
+            if (continueLink) {
+                continueLink.href = `/page/${newPage.id}/continue/`;
+            }
+
         }, 250);
 
         // 状態更新
