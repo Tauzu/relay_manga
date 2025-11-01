@@ -56,16 +56,19 @@
                 class="w-full bg-green-500 text-white py-2 mt-4 rounded font-semibold hover:bg-green-600 transition">
           ページを追加
         </button>
-
-        {% if parent %}
-        <a href="{% url 'page_viewer' parent.id %}"
-           class="block text-gray-500 hover:underline mt-3 text-center w-full">
-          ビューアに戻る
-        </a>
-        {% endif %}
       </form>
     </div>
   </div>
+
+  <!-- 🔹 ビューアに戻る（左寄せ） -->
+  {% if parent %}
+  <div class="mt-8">
+    <a href="{% url 'page_viewer' parent.id %}"
+       class="text-gray-600 hover:text-blue-600 hover:underline transition">
+      ← ビューアに戻る
+    </a>
+  </div>
+  {% endif %}
 </div>
 
 <!-- ✅ プレビューJS -->
