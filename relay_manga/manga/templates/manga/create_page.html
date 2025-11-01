@@ -1,36 +1,113 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}{{ manga.title }} - ページ追加{% endblock %}
+{% block title %}新しいページを追加{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">{{ manga.title }} にページを追加</h2>
+<div class="max-w-6xl mx-auto bg-white p-8 rounded shadow">
+  <h2 class="text-2xl font-bold text-center mb-8">新しいページを追加</h2>
 
-{% if parent %}
-    <p class="mb-4 text-gray-600">このページの続きとして追加: 
-        <span class="font-semibold">Page {{ parent.id }} by {{ parent.author.username }}</span>
-    </p>
-{% endif %}
+  <!-- ✅ 3行×2列構成 -->
+  <div class="grid grid-cols-2 gap-x-8 text-center">
 
-<form method="post" enctype="multipart/form-data" class="space-y-4">
-    {% csrf_token %}
-    <div>
-        <label for="id_title" class="block font-semibold mb-1">ページタイトル</label>
-        {{ form.title }}
+    <!-- 🔹 1行目：ラベル -->
+    <div><h3 class="text-lg font-semibold text-gray-700 mb-4">前のページ</h3></div>
+    <div><h3 class="text-lg font-semibold text-gray-700 mb-4">新しいページ</h3></div>
+
+    <!-- 🔹 2行目：画像エリア -->
+    <div class="flex justify-center">
+      <div class="w-[360px] h-[360px] flex items-center justify-center bg-gray-50 border rounded-lg shadow-md overflow-hidden">
+        {% if parent %}
+          <img src="{{ parent.image.url }}" alt="親ページ" class="object-contain w-full h-full">
+        {% else %}
+          <span class="text-gray-500">最初のページです</span>
+        {% endif %}
+      </div>
     </div>
 
-    <div>
-        <label for="id_image" class="block font-semibold mb-1">画像ファイル</label>
-        {{ form.image }}
+    <div class="flex justify-center">
+      <form id="create-form" method="post" enctype="multipart/form-data"
+            class="flex flex-col items-center w-full max-w-sm">
+        {% csrf_token %}
+
+        <!-- D&Dエリア -->
+        <div id="drop-zone"
+             class="w-[360px] h-[360px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative mb-4">
+          <div id="drop-inner" class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <p class="text-sm text-gray-500">ここに画像をドロップまたはクリックで選択</p>
+          </div>
+          <input id="id_image" name="image" type="file" accept="image/*" class="hidden">
+        </div>
     </div>
 
-    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-        作成する
-    </button>
-</form>
+    <!-- 🔹 3行目：タイトル -->
+    <div class="flex flex-col items-center mt-3">
+      {% if parent %}
+        <p class="text-gray-600">{{ parent.display_title }}</p>
+      {% else %}
+        <p class="text-gray-400">ここから物語が始まります</p>
+      {% endif %}
+    </div>
 
-<p class="mt-4">
-    <a href="{% url 'manga_detail' manga.id %}" class="text-gray-600 hover:underline">
-        ← マンガに戻る
-    </a>
-</p>
+    <div class="flex flex-col items-center w-full max-w-sm">
+      <label class="block font-semibold mb-1 text-gray-700 self-start">ページタイトル（任意）</label>
+      {{ form.title }}
+
+      <!-- 🔹 ボタン -->
+      <button type="submit"
+              class="w-full bg-green-500 text-white py-2 mt-4 rounded font-semibold hover:bg-green-600 transition">
+        ページを追加
+      </button>
+
+      {% if parent %}
+      <a href="{% url 'page_viewer' parent.id %}"
+         class="block text-center text-gray-500 hover:underline mt-3">
+        ビューアに戻る
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ✅ プレビューJS -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const dropZone = document.getElementById("drop-zone");
+  const inputFile = document.getElementById("id_image");
+  const dropInner = document.getElementById("drop-inner");
+
+  dropZone.addEventListener("click", () => inputFile.click());
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.classList.add("border-blue-400", "bg-blue-50");
+  });
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("border-blue-400", "bg-blue-50");
+  });
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.classList.remove("border-blue-400", "bg-blue-50");
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      inputFile.files = e.dataTransfer.files;
+      showPreview(file);
+    }
+  });
+  inputFile.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) showPreview(file);
+  });
+
+  function showPreview(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      dropInner.innerHTML = `<img src="${e.target.result}" class="object-contain w-full h-full" alt="プレビュー画像">`;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+</script>
 {% endblock %}
