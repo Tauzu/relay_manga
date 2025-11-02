@@ -30,7 +30,8 @@ LOGOUT_REDIRECT_URL = 'home'        # ログアウト後に行くURL
 SECRET_KEY = "django-insecure-px*z!w6f4yfib!eo(g(f9k3gy1&v&vp^5(+b^e0z@)$ojvef%%"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = False  # 本番では False
 
 ALLOWED_HOSTS = []
 
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -122,3 +124,18 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+import os
+import dj_database_url  # ← render の DB 環境変数対応（あとでインストール）
+
+ALLOWED_HOSTS = ['*']  # Renderでドメインが変わるため
+
+# 静的ファイル設定（Whitenoise 用）
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+# デプロイ後、自動で collectstatic する
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
