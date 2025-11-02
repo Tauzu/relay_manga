@@ -3,13 +3,90 @@
 {% block title %}新しいマンガを作る{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">新しいマンガを作る</h2>
-<form method="post" class="space-y-4">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" 
-        class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">
+<div class="max-w-lg mx-auto bg-white p-8 rounded-lg shadow">
+    <h2 class="text-2xl font-bold text-center mb-6">新しいマンガを作る</h2>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- 📖 タイトル -->
+        <div>
+        <label for="id_title" class="block font-semibold mb-1 text-gray-700">タイトル <span class="text-red-500">*</span></label>
+        {{ form.title }}
+        {% if form.title.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.title.errors.0 }}</p>
+        {% endif %}
+        </div>
+
+        <!-- 🖼️ 表紙画像 -->
+        <div>
+        <label class="block font-semibold mb-2 text-gray-700">表紙画像</label>
+        <div id="drop-zone"
+            class="w-full h-[300px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative">
+            <div id="drop-inner" class="flex flex-col items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <p class="text-sm text-gray-500">ここに画像をドロップまたはクリックで選択</p>
+            </div>
+            {{ form.cover_image }}
+            <img id="preview-image" src="" alt="プレビュー" class="hidden object-contain absolute inset-0 w-full h-full" />
+        </div>
+        {% if form.cover_image.errors %}
+            <p class="text-red-500 text-sm mt-1">{{ form.cover_image.errors.0 }}</p>
+        {% endif %}
+        </div>
+
+        <!-- ✅ 作成ボタン -->
+        <button type="submit"
+            class="w-full bg-green-500 text-white py-2 rounded font-semibold hover:bg-green-600 transition">
         作成する
-    </button>
-</form>
+        </button>
+    </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("id_cover_image");
+    const previewImage = document.getElementById("preview-image");
+    const dropInner = document.getElementById("drop-inner");
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("border-blue-400", "bg-blue-50");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("border-blue-400", "bg-blue-50");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("border-blue-400", "bg-blue-50");
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith("image/")) {
+        fileInput.files = e.dataTransfer.files;
+        showPreview(file);
+        }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) showPreview(file);
+    });
+
+    function showPreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+        previewImage.src = e.target.result;
+        previewImage.classList.remove("hidden");
+        dropInner.classList.add("hidden");
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
 {% endblock %}

@@ -9,13 +9,11 @@ def home(request):
 
 @login_required
 def create_manga(request):
-    if request.method == 'POST':
-        form = MangaForm(request.POST)
+    if request.method == "POST":
+        form = MangaForm(request.POST, request.FILES)  # ✅ FILES を追加
         if form.is_valid():
             manga = form.save(commit=False)
-            # ログインしているときだけユーザーをセット
-            if request.user.is_authenticated:
-                manga.created_by = request.user
+            manga.created_by = request.user
             manga.save()
             return redirect('manga_detail', manga_id=manga.id)
     else:

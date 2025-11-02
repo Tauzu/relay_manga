@@ -5,6 +5,7 @@ from imagekit.processors import ResizeToFill
 
 class Manga(models.Model):
     title = models.CharField(max_length=100)
+    cover_image = models.ImageField(upload_to='manga_covers/', blank=True, null=True)
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
