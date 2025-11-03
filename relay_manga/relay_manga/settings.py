@@ -22,6 +22,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_REDIRECT_URL = 'manga_list'   # ログイン後に行くURL（名前付きURLで指定）
 LOGOUT_REDIRECT_URL = 'home'        # ログアウト後に行くURL
 
+# ImageKit 設定
+IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = 'imagekit.cachefiles.strategies.Optimistic'
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
