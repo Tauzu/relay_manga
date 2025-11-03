@@ -127,7 +127,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 import os
-import dj_database_url  # ← render の DB 環境変数対応（あとでインストール）
+import dj_database_url
+
+DATABASES = {
+    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
+}
 
 ALLOWED_HOSTS = ['*']  # Renderでドメインが変わるため
 
