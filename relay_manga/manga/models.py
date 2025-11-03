@@ -2,10 +2,22 @@ from django.db import models
 from django.contrib.auth.models import User
 from imagekit.models import ImageSpecField
 from imagekit.processors import ResizeToFill
+from imagekit.models import ProcessedImageField
+from imagekit.processors import ResizeToFit
 
 class Manga(models.Model):
     title = models.CharField(max_length=100)
-    cover_image = models.ImageField(upload_to='manga_covers/', blank=True, null=True)
+
+    # 表紙画像を軽量化
+    cover_image = ProcessedImageField(
+        upload_to='covers/',
+        processors=[ResizeToFit(800, 800)],  # 表紙は少し小さめでもOK
+        format='JPEG',
+        options={'quality': 85},
+        null=True,
+        blank=True
+    )
+
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -17,7 +29,14 @@ class Page(models.Model):
     manga = models.ForeignKey(Manga, on_delete=models.CASCADE, related_name='pages')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, blank=True, default="")
-    image = models.ImageField(upload_to='pages/')
+
+    # imagekit による自動リサイズ・圧縮
+    image = ProcessedImageField(
+        upload_to='pages/',
+        processors=[ResizeToFit(1280, 1280)],  # 最大1280pxにリサイズ
+        format='JPEG',
+        options={'quality': 85}  # 画質85で軽量化
+    )
 
     # ✅ 正方形にトリミングしたサムネイル（100x100）
     thumbnail = ImageSpecField(

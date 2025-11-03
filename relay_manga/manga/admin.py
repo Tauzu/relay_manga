@@ -7,4 +7,4 @@ class MangaAdmin(admin.ModelAdmin):
 
 @admin.register(Page)
 class PageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'manga', 'author', 'created_at', 'parent')
+    list_display = ('id', 'manga', 'author', 'created_at', 'parent', 'title')
