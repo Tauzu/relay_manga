@@ -26,9 +26,6 @@ LOGOUT_REDIRECT_URL = 'home'        # ログアウト後に行くURL
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-px*z!w6f4yfib!eo(g(f9k3gy1&v&vp^5(+b^e0z@)$ojvef%%"
-
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 DEBUG = False  # 本番では False
