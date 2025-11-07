@@ -1,19 +1,53 @@
 {% extends "base.html" %}
+{% load static %}  <!-- ★これを追加！ -->
 
 {% block title %}リレーマンガへようこそ{% endblock %}
 
 {% block content %}
-<div class="text-center">
-    <h2 class="text-4xl font-bold mb-8">リレーマンガへようこそ</h2>
+<style>
+    body {
+        background-image: url("{% static 'manga/background.png' %}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
+    .overlay {
+        background: rgba(255, 255, 255, 0.75);
+        border-radius: 1rem;
+        padding: 3rem;
+        backdrop-filter: blur(6px);
+        max-width: 700px;
+        margin: 5rem auto;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        font-size: 2.75rem;
+        font-weight: 800;
+        color: #222;
+    }
+
+    .tagline {
+        font-size: 1.5rem;
+        color: #444;
+        margin-bottom: 2rem;
+    }
+</style>
+
+<div class="overlay text-center">
+    <h1>リレーマンガへようこそ</h1>
+    <p class="tagline">だれでもマンガのつづきがかける！</p>
+
     <div class="space-x-4">
         <a href="{% url 'create_manga' %}" 
-           class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
-           新しくマンガを作る
+        class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
+        新しくマンガを作る
         </a>
 
         <a href="{% url 'manga_list' %}" 
-           class="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition">
-           マンガを見る / 続きを投稿する
+        class="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition">
+        マンガを見る / 続きを投稿する
         </a>
     </div>
 </div>
