@@ -32,6 +32,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const network = new vis.Network(container, data, options);
 
+    // ✅ 初期位置・ズームレベルを記録
+    const initialView = {
+        position: network.getViewPosition(),
+        scale: network.getScale()
+    };
+
+    // ✅ 「🏠初期位置に戻る」ボタン機能
+    const resetButton = document.getElementById("reset-view");
+    if (resetButton) {
+        resetButton.addEventListener("click", () => {
+            network.moveTo({
+                position: initialView.position,
+                scale: initialView.scale,
+                animation: {
+                    duration: 600,
+                    easingFunction: "easeInOutQuad"
+                }
+            });
+        });
+    }
+
     // ✅ カスタムツールチップ
     const tooltip = document.getElementById("tooltip");
 
@@ -49,11 +70,11 @@ document.addEventListener("DOMContentLoaded", () => {
         tooltip.style.display = "none";
     });
 
-    // ノードクリックイベント
+    // ✅ ノードクリックで viewer ページへ
     network.on("click", function (params) {
         if (params.nodes.length > 0) {
             const nodeId = params.nodes[0];
-            window.location.href = `/page/${nodeId}/viewer/`;  // ✅ viewer ページへ遷移
+            window.location.href = `/page/${nodeId}/viewer/`;
         }
     });
 });

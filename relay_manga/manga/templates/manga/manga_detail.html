@@ -24,6 +24,36 @@
         padding: 2rem;
         backdrop-filter: blur(6px);
     }
+
+    /* 🎯 リセットボタン（右上配置・角丸四角） */
+    #reset-view {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background-color: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        border-radius: 0.3rem;
+        padding: 0.4rem 0.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s, transform 0.2s;
+        z-index: 10;
+    }
+
+    #reset-view:hover {
+        background-color: rgba(240, 240, 240, 1);
+        transform: scale(1.05);
+    }
+
+    #reset-view svg {
+        width: 22px;
+        height: 22px;
+        stroke: #333;
+    }
+
+    /* 相対位置の親コンテナ */
+    #network-container {
+        position: relative;
+    }
 </style>
 
 <div class="max-w-5xl mx-auto content-overlay">
@@ -46,8 +76,18 @@
         </div>
     {% endif %}
 
-    <!-- 🧩 ツリービュー -->
-    <div id="network" class="w-full h-[600px] border border-gray-300 rounded bg-white/70"></div>
+    <!-- 🧩 ツリービュー（相対コンテナ内） -->
+    <div id="network-container" class="relative">
+        <div id="network" class="w-full h-[600px] border border-gray-300 rounded bg-white/70"></div>
+
+        <!-- 🏠 リセットボタン -->
+        <button id="reset-view" title="初期位置に戻る">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 12l9-9 9 9M4 10v10h16V10" />
+            </svg>
+        </button>
+    </div>
 
     <!-- 🔙 戻るリンク -->
     <p class="mt-6">
