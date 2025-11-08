@@ -7,6 +7,20 @@
 <!-- ✅ 外部CSSの読み込み -->
 <link rel="stylesheet" href="{% static 'manga/manga_detail.css' %}">
 
+<style>
+    body {
+        {% if manga.cover_image %}
+            background-image: url("{{ manga.cover_image.url }}");
+        {% else %}
+            background: linear-gradient(to bottom right, #f9fafb, #e5e7eb);
+        {% endif %}
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+    }
+</style>
+
 <div class="max-w-5xl mx-auto content-overlay">
 
     <!-- 🏷 タイトル -->
@@ -26,7 +40,7 @@
             </a>
         </div>
     {% endif %}
-
+    
     <!-- 🧩 ツリービュー（相対コンテナ内） -->
     <div id="network-container" class="relative">
         <div id="network" class="w-full h-[600px] border border-gray-300 rounded bg-white/70"></div>
