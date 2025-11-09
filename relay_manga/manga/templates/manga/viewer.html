@@ -40,40 +40,36 @@
     </div>
 
     <!-- 📄 画像表示エリア -->
-    <div class="relative flex items-center justify-center">
+    <div class="relative w-full aspect-square flex items-center justify-center overflow-hidden bg-white">
         <!-- 左矢印 -->
         <button id="prev-btn"
-                class="absolute left-0 ml-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-                title="前のページへ">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-gray-100/80 hover:bg-gray-200 rounded-full p-2 sm:p-3 shadow transition disabled:opacity-40 z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
         </button>
 
-        <!-- 画像 -->
+        <!-- 正方形画像 -->
         <img id="viewer-image"
             src="{{ first_page.image.url|default_if_none:'' }}"
             alt="Page image"
-            class="object-contain w-[600px] h-[600px] border rounded shadow-md transition-all duration-500 ease-in-out opacity-100" />
+            class="absolute inset-0 w-full h-full object-contain border rounded shadow-md transition-all duration-500 ease-in-out" />
 
-        <!-- 右矢印＆分岐ボタン -->
-        <div class="absolute right-0 mr-4 flex flex-col items-center">
-            <button id="next-btn"
-                    class="bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-                    title="次のページへ">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
+        <!-- 右矢印 -->
+        <button id="next-btn"
+                class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-gray-100/80 hover:bg-gray-200 rounded-full p-2 sm:p-3 shadow transition disabled:opacity-40 z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
 
-            <!-- ... 分岐メニュー -->
-            <div class="relative mt-2">
-                <button id="branch-toggle"
-                        class="bg-gray-100 hover:bg-gray-200 rounded-full p-2 shadow transition"
-                        title="分岐を選択">…</button>
-                <div id="branch-menu"
-                    class="absolute right-0 mt-2 bg-white border rounded shadow-md hidden w-64 z-10"></div>
-            </div>
+        <!-- … 分岐ボタン -->
+        <div class="absolute bottom-3 right-3 sm:bottom-5 sm:right-5 z-10">
+            <button id="branch-toggle"
+                    class="bg-gray-100/80 hover:bg-gray-200 rounded-full p-2 sm:p-3 shadow transition"
+                    title="分岐を選択">…</button>
+            <div id="branch-menu"
+                class="absolute right-0 mt-2 bg-white border rounded shadow-md hidden w-64 z-10"></div>
         </div>
     </div>
 
