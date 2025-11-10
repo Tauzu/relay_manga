@@ -17,19 +17,69 @@
         background-attachment: fixed;
     }
 
-    /* 背景の上に半透明オーバーレイ */
+    /* オーバーレイ（PC用） */
     .viewer-overlay {
-        background-color: rgba(255, 255, 255, 0.85);
+        background-color: rgba(255, 255, 255, 0.9);
         border-radius: 1rem;
         padding: 2rem;
         backdrop-filter: blur(6px);
     }
+
+    /* 画像を常に正方形で表示 */
+    #viewer-image {
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        height: auto;
+        max-width: 500px;   /* PCでは画像エリアを少し小さく */
+        max-height: 500px;
+        object-fit: contain;
+        border-radius: 0.5rem;
+    }
+
+    /* 分岐メニューを前面に固定 */
+    #branch-menu {
+        z-index: 9999;
+        position: absolute;
+        right: 0;
+        bottom: 48px;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    /* スマホでは余白をなくして全画面化 */
+    @media (max-width: 640px) {
+        .viewer-overlay {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .viewer-wrapper {
+            padding: 0;
+            margin: 0;
+        }
+
+        /* スマホでは矢印ボタンを小さく */
+        #prev-btn, #next-btn {
+            padding: 0.4rem !important;
+        }
+        #prev-btn svg, #next-btn svg {
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        /* スマホでは画像を大きく */
+        #viewer-image {
+            max-width: 100vw;
+            max-height: 100vw;
+        }
+    }
 </style>
 
-<div class="max-w-5xl mx-auto viewer-overlay shadow-lg">
+<div class="viewer-wrapper w-full md:max-w-4xl mx-auto viewer-overlay shadow-lg">
 
     <!-- 🏷 タイトル部分 -->
-    <div class="mb-6 text-lg text-gray-800 font-semibold">
+    <div class="mb-4 text-lg text-gray-800 font-semibold px-4 md:px-0">
         <span class="cursor-pointer hover:underline"
               onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
             {{ manga.title }}
@@ -40,11 +90,10 @@
     </div>
 
     <!-- 📄 画像表示エリア -->
-    <div class="relative flex items-center justify-center">
+    <div class="relative flex items-center justify-center w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
         <!-- 左矢印 -->
         <button id="prev-btn"
-                class="absolute left-0 ml-4 bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-                title="前のページへ">
+                class="absolute left-2 bg-white/80 hover:bg-white rounded-full p-3 shadow transition disabled:opacity-40 z-10">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -52,37 +101,34 @@
 
         <!-- 画像 -->
         <img id="viewer-image"
-            src="{{ first_page.image.url|default_if_none:'' }}"
-            alt="Page image"
-            class="object-contain w-[600px] h-[600px] border rounded shadow-md transition-all duration-500 ease-in-out opacity-100" />
+             src="{{ first_page.image.url|default_if_none:'' }}"
+             alt="Page image"
+             class="transition-all duration-500 ease-in-out" />
 
-        <!-- 右矢印＆分岐ボタン -->
-        <div class="absolute right-0 mr-4 flex flex-col items-center">
-            <button id="next-btn"
-                    class="bg-gray-100 enabled:hover:bg-gray-200 rounded-full p-3 shadow transition disabled:opacity-40"
-                    title="次のページへ">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
+        <!-- 右矢印 -->
+        <button id="next-btn"
+                class="absolute right-2 bg-white/80 hover:bg-white rounded-full p-3 shadow transition disabled:opacity-40 z-10">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
 
-            <!-- ... 分岐メニュー -->
-            <div class="relative mt-2">
-                <button id="branch-toggle"
-                        class="bg-gray-100 hover:bg-gray-200 rounded-full p-2 shadow transition"
-                        title="分岐を選択">…</button>
-                <div id="branch-menu"
-                    class="absolute right-0 mt-2 bg-white border rounded shadow-md hidden w-64 z-10"></div>
-            </div>
+        <!-- … 分岐ボタン -->
+        <div class="absolute bottom-3 right-3">
+            <button id="branch-toggle"
+                    class="bg-white/80 hover:bg-white rounded-full p-2 shadow transition"
+                    title="分岐を選択">…</button>
+            <div id="branch-menu"
+                 class="hidden w-64 bg-white border rounded shadow-md p-2"></div>
         </div>
     </div>
 
-    <!-- ❤️ いいねボタン ＋ 続きを描く -->
-    <div class="flex justify-center items-center gap-4 mt-6">
-        <form id="like-form" method="post">
+    <!-- ❤️ いいねボタン + 続きを描く -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0">
+        <form id="like-form" method="post" class="w-full sm:w-auto text-center">
             {% csrf_token %}
             <button type="submit" id="like-button"
-                class="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">
+                class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 sm:px-6 sm:py-3 rounded-lg bg-blue-500 text-white font-semibold text-lg hover:bg-blue-600 transition disabled:bg-gray-400">
                 👍 いいね
             </button>
         </form>
@@ -91,24 +137,22 @@
             ❤️ <span id="like-count">{{ first_page.likes }}</span>
         </span>
 
-        <!-- ✏️ 続きを描くボタン -->
         <a id="continue-link"
-        href="{% url 'continue_page' first_page.id %}"
-        class="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+           href="{% url 'continue_page' first_page.id %}"
+           class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-green-500 text-white rounded-lg font-semibold text-lg hover:bg-green-600 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            ここから続きを描く
+            続きを描く
         </a>
     </div>
 </div>
 
-<!-- 🔹 ページデータを渡す -->
+<!-- 🔹 ページデータ -->
 <script>
     window.viewerPages = {{ pages_json|safe }};
     window.initialIndex = {{ current_index }};
 </script>
 
-<!-- JS 読み込み -->
 <script src="{% static 'manga/viewer.js' %}"></script>
 {% endblock %}

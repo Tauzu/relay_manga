@@ -4,70 +4,73 @@
 {% block title %}新しいページを追加{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto bg-white p-8 rounded-lg shadow">
+<div class="max-w-6xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow">
     <h2 class="text-2xl font-bold text-center mb-8">新しいページを追加</h2>
 
-    <div class="grid grid-cols-2 gap-8">
-    <!-- 🔹 左カラム：前のページ -->
-    <div class="flex flex-col items-center">
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">前のページ</h3>
+    <!-- ✅ スマホでは縦並び（grid-cols-1）、PCでは2列 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
-        <div class="w-[360px] h-[360px] flex items-center justify-center bg-gray-50 border rounded-lg shadow-md overflow-hidden mb-4">
-        {% if parent %}
-            <img src="{{ parent.image.url }}" alt="親ページ" class="object-contain w-full h-full">
-        {% else %}
-            <span class="text-gray-500">最初のページです</span>
-        {% endif %}
-        </div>
+        <!-- 🔹 左カラム：前のページ -->
+        <div class="flex flex-col items-center">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">前のページ</h3>
 
-        {% if parent %}
-        <p class="text-gray-600 text-center">{{ parent.display_title }}</p>
-        {% else %}
-        <p class="text-gray-400 text-center">ここから物語が始まります</p>
-        {% endif %}
-    </div>
-
-    <!-- 🔹 右カラム：新しいページ -->
-    <div class="flex flex-col items-center">
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">新しいページ</h3>
-
-        <form id="create-form" method="post" enctype="multipart/form-data"
-            class="flex flex-col items-center w-[360px]">
-        {% csrf_token %}
-
-        <!-- D&Dエリア -->
-        <div id="drop-zone"
-                class="w-full h-[360px] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative mb-4">
-            <div id="drop-inner" class="flex flex-col items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <p class="text-sm text-gray-500">ここに画像をドロップまたはクリックで選択</p>
+            <div class="w-full max-w-[360px] aspect-square flex items-center justify-center bg-gray-50 border rounded-lg shadow-md overflow-hidden mb-4">
+                {% if parent %}
+                    <img src="{{ parent.image.url }}" alt="親ページ" class="object-contain w-full h-full">
+                {% else %}
+                    <span class="text-gray-500">最初のページです</span>
+                {% endif %}
             </div>
-            <input id="id_image" name="image" type="file" accept="image/*" class="hidden">
+
+            {% if parent %}
+                <p class="text-gray-600 text-center text-sm sm:text-base">{{ parent.display_title }}</p>
+            {% else %}
+                <p class="text-gray-400 text-center text-sm sm:text-base">ここから物語が始まります</p>
+            {% endif %}
         </div>
 
-        <!-- タイトル入力 -->
-        <label class="block font-semibold mb-1 text-gray-700 self-start">ページタイトル（任意）</label>
-        {{ form.title }}
+        <!-- 🔹 右カラム：新しいページ -->
+        <div class="flex flex-col items-center">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">新しいページ</h3>
 
-        <!-- ボタン -->
-        <button type="submit"
-                class="w-full bg-green-500 text-white py-2 mt-4 rounded font-semibold hover:bg-green-600 transition">
-            ページを追加
-        </button>
-        </form>
-    </div>
+            <form id="create-form" method="post" enctype="multipart/form-data"
+                class="flex flex-col items-center w-full max-w-[360px]">
+                {% csrf_token %}
+
+                <!-- D&Dエリア -->
+                <div id="drop-zone"
+                    class="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative mb-4">
+                    <div id="drop-inner" class="flex flex-col items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                        <p class="text-sm text-gray-500">ここに画像をドロップまたはクリックで選択</p>
+                    </div>
+                    <input id="id_image" name="image" type="file" accept="image/*" class="hidden">
+                </div>
+
+                <!-- タイトル入力 -->
+                <label class="block font-semibold mb-1 text-gray-700 self-start text-sm sm:text-base">ページタイトル（任意）</label>
+                {{ form.title }}
+
+                <!-- ボタン -->
+                <button type="submit"
+                        class="w-full bg-green-500 text-white py-2 mt-4 rounded font-semibold hover:bg-green-600 transition text-sm sm:text-base">
+                    ページを追加
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- 🔹 ビューアに戻る（左寄せ） -->
+    <!-- 🔹 ビューアに戻る -->
     {% if parent %}
-    <div class="mt-8">
-    <a href="{% url 'page_viewer' parent.id %}"
-        class="text-gray-600 hover:text-blue-600 hover:underline transition">
-        ← ビューアに戻る
-    </a>
-    </div>
+        <div class="mt-8 text-center sm:text-left">
+            <a href="{% url 'page_viewer' parent.id %}"
+               class="text-gray-600 hover:text-blue-600 hover:underline transition text-sm sm:text-base">
+                ← ビューアに戻る
+            </a>
+        </div>
     {% endif %}
 </div>
 
@@ -91,8 +94,8 @@ document.addEventListener("DOMContentLoaded", () => {
         dropZone.classList.remove("border-blue-400", "bg-blue-50");
         const file = e.dataTransfer.files[0];
         if (file) {
-        inputFile.files = e.dataTransfer.files;
-        showPreview(file);
+            inputFile.files = e.dataTransfer.files;
+            showPreview(file);
         }
     });
     inputFile.addEventListener("change", (e) => {
@@ -103,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function showPreview(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-        dropInner.innerHTML = `<img src="${e.target.result}" class="object-contain w-full h-full" alt="プレビュー画像">`;
+            dropInner.innerHTML = `<img src="${e.target.result}" class="object-contain w-full h-full" alt="プレビュー画像">`;
         };
         reader.readAsDataURL(file);
     }
