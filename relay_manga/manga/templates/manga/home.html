@@ -5,11 +5,22 @@
 
 {% block content %}
 <style>
+    /* 🌄 背景画像（デフォルト：PC向け） */
     body {
         background-image: url("{% static 'manga/background.png' %}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
+        background-repeat: no-repeat;
+    }
+
+    /* 📱 スマホ画面用 背景画像に切り替え */
+    @media (max-width: 640px) {
+        body {
+            background-image: url("{% static 'manga/background_mobile.png' %}");
+            background-attachment: scroll; /* スマホでは fixed は非推奨 */
+            background-size: cover;
+        }
     }
 
     .overlay {
