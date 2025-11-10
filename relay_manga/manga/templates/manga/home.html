@@ -15,7 +15,7 @@
     .overlay {
         background: rgba(255, 255, 255, 0.75);
         border-radius: 1rem;
-        padding: 3rem;
+        padding: 3rem 2rem;
         backdrop-filter: blur(6px);
         max-width: 700px;
         margin: 5rem auto;
@@ -23,15 +23,29 @@
     }
 
     h1 {
-        font-size: 2.75rem;
+        font-size: 2.5rem;
         font-weight: 800;
         color: #222;
     }
 
     .tagline {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         color: #444;
         margin-bottom: 2rem;
+    }
+
+    /* スマホ調整 */
+    @media (max-width: 640px) {
+        .overlay {
+            margin: 2rem 1rem;
+            padding: 2rem 1rem;
+        }
+        h1 {
+            font-size: 1.8rem;
+        }
+        .tagline {
+            font-size: 1.1rem;
+        }
     }
 </style>
 
@@ -39,15 +53,15 @@
     <h1>リレーマンガへようこそ</h1>
     <p class="tagline">だれでもマンガのつづきがかける！</p>
 
-    <div class="space-x-4">
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
         <a href="{% url 'create_manga' %}" 
-        class="px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
-        新しくマンガを作る
+           class="w-full sm:w-auto px-6 py-3 rounded-lg bg-green-500 text-white font-semibold shadow hover:bg-green-600 transition">
+           新しくマンガを作る
         </a>
 
         <a href="{% url 'manga_list' %}" 
-        class="px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition">
-        マンガを見る / 続きを投稿する
+           class="w-full sm:w-auto px-6 py-3 rounded-lg bg-blue-500 text-white font-semibold shadow hover:bg-blue-600 transition">
+           マンガを見る / 続きを投稿する
         </a>
     </div>
 </div>
