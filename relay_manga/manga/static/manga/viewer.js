@@ -43,17 +43,17 @@ document.addEventListener("DOMContentLoaded", () => {
             fetch(`/page/${newPage.id}/like_status/`, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
             })
-            .then(res => res.json())
-            .then(data => {
-                likeCount.textContent = data.likes;
-                if (data.liked) {
-                    likeButton.disabled = true;
-                    likeButton.textContent = "👍 いいね済み";
-                } else {
-                    likeButton.disabled = false;
-                    likeButton.textContent = "👍 いいね";
-                }
-            });
+                .then(res => res.json())
+                .then(data => {
+                    likeCount.textContent = data.likes;
+                    if (data.liked) {
+                        likeButton.disabled = true;
+                        likeButton.textContent = "👍 いいね済み";
+                    } else {
+                        likeButton.disabled = false;
+                        likeButton.textContent = "👍 いいね";
+                    }
+                });
 
             // ✅ 続きを描くリンク更新
             const continueLink = document.getElementById("continue-link");
@@ -156,4 +156,33 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===== 初期化 =====
     updateViewer(currentIndex);
     updateButtonStates();
+
+    // ===== ✅ スワイプ操作の追加 =====
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    const swipeArea = document.querySelector(".relative.flex.items-center.justify-center"); // 画像＋矢印全体
+
+    if (swipeArea) {
+        swipeArea.addEventListener("touchstart", (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        swipeArea.addEventListener("touchend", (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+    }
+
+    function handleSwipe() {
+        const diff = touchEndX - touchStartX;
+        const threshold = 50; // スワイプとみなす最小距離(px)
+        if (Math.abs(diff) < threshold) return;
+
+        if (diff < 0 && !nextBtn.disabled) {
+            nextBtn.click(); // 左→右
+        } else if (diff > 0 && !prevBtn.disabled) {
+            prevBtn.click(); // 右→左
+        }
+    }
 });
