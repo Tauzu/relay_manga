@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const link = document.createElement("a");
                 link.href = `/page/${child.id}/viewer/`;
                 link.className = "block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100";
-                link.textContent = `${child.title} by ${child.author}（優先度: ${child.priority}）`;
+                link.textContent = `${child.title} by ${child.author}`;
                 branchMenu.appendChild(link);
             });
         } else {
