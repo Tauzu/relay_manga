@@ -20,6 +20,7 @@ class Manga(models.Model):
 
     created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)  # ✅ 自動更新フィールド
 
     def __str__(self):
         return self.title
