@@ -79,15 +79,22 @@
 <div class="viewer-wrapper w-full md:max-w-4xl mx-auto viewer-overlay shadow-lg">
 
     <!-- 🏷 タイトル部分 -->
-    <div class="mb-4 text-lg text-gray-800 font-semibold px-4 md:px-0">
-        <span class="cursor-pointer hover:underline"
-              onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
-            {{ manga.title }}
-        </span>
-        &gt;
-        <span id="viewer-title">{{ first_page.display_title }}</span>
-        <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
+    <div class="mb-4 text-lg text-gray-800 font-semibold flex justify-between items-center px-4 md:px-0">
+        <div>
+            <span class="cursor-pointer hover:underline"
+                onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
+                {{ manga.title }}
+            </span>
+            &gt;
+            <span id="viewer-title">{{ first_page.display_title }}</span>
+            <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
+        </div>
+        <!-- ✅ ページ番号 -->
+        <div class="text-gray-600 text-sm font-medium">
+            <span id="page-counter"></span>
+        </div>
     </div>
+
 
     <!-- 📄 画像表示エリア -->
     <div class="relative flex items-center justify-center w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">

@@ -55,6 +55,10 @@ document.addEventListener("DOMContentLoaded", () => {
             continueLink.href = `/page/${newPage.id}/continue/`;
         }
 
+        // ✅ ページカウンター更新
+        const counter = document.getElementById("page-counter");
+        if (counter) counter.textContent = `${newIndex + 1} / ${pages.length}`;
+
         // 状態更新
         currentIndex = newIndex;
         updateButtonStates();
