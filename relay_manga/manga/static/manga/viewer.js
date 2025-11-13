@@ -133,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then((response) => {
             if (response.redirected) {
-                alert("いいねするにはログインが必要です。");
+                // alert("いいねするにはログインが必要です。");
                 window.location.href = response.url;
                 return;
             }
