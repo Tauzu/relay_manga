@@ -2,12 +2,13 @@
 {% block title %}マンガ一覧{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-bold mb-6">マンガ一覧</h2>
+<h2 class="text-2xl font-bold mb-6 text-center md:text-left">マンガ一覧</h2>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
     {% for manga in mangas %}
-        <div class="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden">
-            <!-- ✅ 表紙画像またはダミー -->
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden flex flex-col">
+            
+            <!-- ✅ 表紙画像 -->
             {% if manga.cover_image %}
                 <img src="{{ manga.cover_image.url }}" alt="{{ manga.title }}" 
                      class="w-full h-48 object-cover">
@@ -17,18 +18,36 @@
                 </div>
             {% endif %}
 
-            <!-- タイトルなど -->
-            <div class="p-4">
-                <h3 class="text-lg font-semibold mb-1">{{ manga.title }}</h3>
-                <p class="text-sm text-gray-500 mb-2">作成者: {{ manga.created_by.username }}</p>
+            <!-- ✅ タイトル・メタ情報 -->
+            <div class="p-4 flex flex-col flex-grow justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold mb-1">{{ manga.title }}</h3>
+                    <p class="text-sm text-gray-500 mb-1">作成者: {{ manga.created_by.username }}</p>
+
+                    <!-- ✅ ページ総数 -->
+                    <p class="text-sm text-gray-500 mb-1">
+                        📄 ページ総数: {{ manga.pages.count }}
+                    </p>
+
+                    <!-- ✅ 最終更新日時 -->
+                    {% if manga.updated_at %}
+                        <p class="text-sm text-gray-500">
+                            ⏰ 更新: {{ manga.updated_at|date:"Y/m/d H:i" }}
+                        </p>
+                    {% else %}
+                        <p class="text-sm text-gray-400">⏰ 更新情報なし</p>
+                    {% endif %}
+                </div>
+
+                <!-- ✅ 開くボタン -->
                 <a href="{% url 'manga_detail' manga.id %}" 
-                   class="block text-center bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition">
+                   class="mt-3 block text-center bg-blue-500 hover:bg-blue-600 text-white py-2 rounded transition font-medium">
                     開く
                 </a>
             </div>
         </div>
     {% empty %}
-        <p class="text-gray-600">まだマンガがありません。</p>
+        <p class="text-gray-600 text-center col-span-full">まだマンガがありません。</p>
     {% endfor %}
 </div>
 {% endblock %}

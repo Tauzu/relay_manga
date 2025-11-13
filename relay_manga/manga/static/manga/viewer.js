@@ -21,47 +21,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ===== ページ更新処理 =====
-    function updateViewer(newIndex, direction = "next") {
+    function updateViewer(newIndex) {
         if (newIndex < 0 || newIndex >= pages.length) return;
 
         const newPage = pages[newIndex];
 
-        // フェードアニメーション
-        image.classList.add("opacity-0", direction === "next" ? "translate-x-10" : "-translate-x-10");
-        setTimeout(() => {
-            image.src = newPage.image;
-            title.textContent = newPage.title;
-            idSpan.textContent = newPage.id;
-            likeCount.textContent = newPage.likes;
-            likeForm.action = newPage.like_url;
+        // ✅ 即座に画像・タイトルなどを切り替える
+        image.src = newPage.image;
+        title.textContent = newPage.title;
+        idSpan.textContent = newPage.id;
+        likeCount.textContent = newPage.likes;
+        likeForm.action = newPage.like_url;
 
-            // スライド完了後アニメーション解除
-            image.classList.remove("opacity-0", "translate-x-10", "-translate-x-10");
-            image.classList.add("opacity-100");
-
-            // ✅ ページ表示ごとに「いいね状態」をサーバーに問い合わせ
-            fetch(`/page/${newPage.id}/like_status/`, {
-                headers: { "X-Requested-With": "XMLHttpRequest" },
-            })
-            .then(res => res.json())
-            .then(data => {
-                likeCount.textContent = data.likes;
-                if (data.liked) {
-                    likeButton.disabled = true;
-                    likeButton.textContent = "👍 いいね済み";
-                } else {
-                    likeButton.disabled = false;
-                    likeButton.textContent = "👍 いいね";
-                }
-            });
-
-            // ✅ 続きを描くリンク更新
-            const continueLink = document.getElementById("continue-link");
-            if (continueLink) {
-                continueLink.href = `/page/${newPage.id}/continue/`;
+        // ✅ いいね状態を即時取得
+        fetch(`/page/${newPage.id}/like_status/`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+        .then(res => res.json())
+        .then(data => {
+            likeCount.textContent = data.likes;
+            if (data.liked) {
+                likeButton.disabled = true;
+                likeButton.textContent = "👍 いいね済み";
+            } else {
+                likeButton.disabled = false;
+                likeButton.textContent = "👍 いいね";
             }
+        });
 
-        }, 250);
+        // ✅ 続きを描くリンク更新
+        const continueLink = document.getElementById("continue-link");
+        if (continueLink) {
+            continueLink.href = `/page/${newPage.id}/continue/`;
+        }
+
+        // ✅ ページカウンター更新
+        const counter = document.getElementById("page-counter");
+        if (counter) counter.textContent = `${newIndex + 1} / ${pages.length}`;
 
         // 状態更新
         currentIndex = newIndex;
@@ -137,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then((response) => {
             if (response.redirected) {
-                alert("いいねするにはログインが必要です。");
+                // alert("いいねするにはログインが必要です。");
                 window.location.href = response.url;
                 return;
             }
@@ -156,4 +152,78 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===== 初期化 =====
     updateViewer(currentIndex);
     updateButtonStates();
+
+    // ===== ✅ スワイプ操作（完全同期修正版） =====
+    let touchStartX = 0;
+    let isSwiping = false;
+
+    const swipeArea = document.querySelector(".relative.flex.items-center.justify-center");
+    const transitionDuration = 350;
+    const threshold = 60;
+
+    if (swipeArea && image) {
+        swipeArea.addEventListener("touchstart", (e) => {
+            touchStartX = e.touches[0].clientX;
+            isSwiping = true;
+            image.style.transition = "none";
+        });
+
+        swipeArea.addEventListener("touchmove", (e) => {
+            if (!isSwiping) return;
+            const deltaX = e.touches[0].clientX - touchStartX;
+            image.style.transform = `translateX(${deltaX}px)`;
+            image.style.opacity = `${1 - Math.min(Math.abs(deltaX) / 200, 0.4)}`;
+        });
+
+        swipeArea.addEventListener("touchend", (e) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+
+            const deltaX = e.changedTouches[0].clientX - touchStartX;
+            const goNext = deltaX < -threshold && !nextBtn.disabled;
+            const goPrev = deltaX > threshold && !prevBtn.disabled;
+
+            image.style.transition = `transform ${transitionDuration}ms ease, opacity ${transitionDuration}ms ease`;
+
+            // 左スワイプ → 次ページへ
+            if (goNext) {
+                image.style.transform = "translateX(-100%)";
+                image.style.opacity = "0";
+                setTimeout(() => {
+                    updateViewer(currentIndex + 1, "next");
+                    image.style.transition = "none";
+                    image.style.transform = "translateX(100%)";
+                    image.style.opacity = "0";
+                    requestAnimationFrame(() => {
+                        image.style.transition = `transform ${transitionDuration}ms ease, opacity ${transitionDuration}ms ease`;
+                        image.style.transform = "translateX(0)";
+                        image.style.opacity = "1";
+                    });
+                }, transitionDuration);
+            }
+
+            // 右スワイプ → 前ページへ
+            else if (goPrev) {
+                image.style.transform = "translateX(100%)";
+                image.style.opacity = "0";
+                setTimeout(() => {
+                    updateViewer(currentIndex - 1, "prev");
+                    image.style.transition = "none";
+                    image.style.transform = "translateX(-100%)";
+                    image.style.opacity = "0";
+                    requestAnimationFrame(() => {
+                        image.style.transition = `transform ${transitionDuration}ms ease, opacity ${transitionDuration}ms ease`;
+                        image.style.transform = "translateX(0)";
+                        image.style.opacity = "1";
+                    });
+                }, transitionDuration);
+            }
+
+            // スワイプ距離が足りない場合は元に戻す
+            else {
+                image.style.transform = "translateX(0)";
+                image.style.opacity = "1";
+            }
+        });
+    }
 });
