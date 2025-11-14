@@ -79,25 +79,25 @@
 <div class="viewer-wrapper w-full md:max-w-4xl mx-auto viewer-overlay shadow-lg">
 
     <!-- 🏷 タイトル部分 -->
-    <div class="mb-4 text-lg text-gray-800 font-semibold flex justify-between items-center px-4 md:px-0">
-        <div>
-            <span class="cursor-pointer hover:underline"
-                onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
-                {{ manga.title }}
-            </span>
-            &gt;
-            <span id="viewer-title">{{ first_page.display_title }}</span>
-            <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
-        </div>
-        <!-- ✅ ページ番号 -->
-        <div class="text-gray-600 text-sm font-medium">
-            <span id="page-counter"></span>
-        </div>
+    <div class="mb-4 text-lg text-gray-800 font-semibold px-4 md:px-0">
+        <span class="cursor-pointer hover:underline"
+              onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
+            {{ manga.title }}
+        </span>
+        &gt;
+        <span id="viewer-title">{{ first_page.display_title }}</span>
+        <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
     </div>
 
 
     <!-- 📄 画像表示エリア -->
     <div class="relative flex items-center justify-center w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
+
+        <!-- ページ番号（右上に表示） -->
+        <div id="page-counter"
+            class="absolute top-4 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
+        </div>
+
         <!-- 左矢印 -->
         <button id="prev-btn"
                 class="absolute left-2 bg-white/80 hover:bg-white rounded-full p-3 shadow transition disabled:opacity-40 z-10">
@@ -108,9 +108,9 @@
 
         <!-- 画像 -->
         <img id="viewer-image"
-             src="{{ first_page.image.url|default_if_none:'' }}"
-             alt="Page image"
-             class="transition-all duration-500 ease-in-out" />
+            src="{{ first_page.image.url|default_if_none:'' }}"
+            alt="Page image"
+            class="transition-all duration-500 ease-in-out" />
 
         <!-- 右矢印 -->
         <button id="next-btn"
@@ -120,13 +120,13 @@
             </svg>
         </button>
 
-        <!-- … 分岐ボタン -->
+        <!-- 分岐メニュー -->
         <div class="absolute bottom-3 right-3">
             <button id="branch-toggle"
                     class="bg-white/80 hover:bg-white rounded-full p-2 shadow transition"
                     title="分岐を選択">…</button>
             <div id="branch-menu"
-                 class="hidden w-64 bg-white border rounded shadow-md p-2"></div>
+                class="hidden w-64 bg-white border rounded shadow-md p-2"></div>
         </div>
     </div>
 
