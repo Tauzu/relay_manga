@@ -21,7 +21,7 @@ def create_manga(request):
     return render(request, 'manga/create_manga.html', {'form': form})
 
 def manga_list(request):
-    mangas = Manga.objects.all().order_by('-created_at')
+    mangas = Manga.objects.all().order_by('-updated_at')
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
 
 def manga_detail(request, manga_id):
