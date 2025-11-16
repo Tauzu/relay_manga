@@ -42,10 +42,12 @@ def manga_detail(request, manga_id):
     for page in pages:
         nodes.append({
             "id": page.id,
-            "label": f"{page.display_title}\n{page.author.username}",
+            "title": page.display_title,
+            "author": page.author.username,
             "imageUrl": page.thumbnail.url,
             "level": get_depth(page),
         })
+
         if page.parent_id:
             edges.append({"from": page.parent_id, "to": page.id})
 

@@ -91,34 +91,27 @@
 
 
     <!-- 📄 画像表示エリア -->
-    <div class="relative flex items-center justify-center w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
+    <div class="relative w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
 
         <!-- ページ番号（右上に表示） -->
         <div id="page-counter"
             class="absolute top-4 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
         </div>
 
-        <!-- 左矢印 -->
-        <button id="prev-btn"
-                class="absolute left-2 bg-white/80 hover:bg-white rounded-full p-3 shadow transition disabled:opacity-40 z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-        </button>
+        <!-- 🟦 Splide スライダー -->
+        <section id="image-splide" class="splide w-full" aria-label="Manga Viewer">
+            <div class="splide__track">
+                <ul class="splide__list">
+                    {% for p in pages %}
+                    <li class="splide__slide flex justify-center">
+                        <img src="{{ p.image.url }}" alt="" class="max-w-full max-h-full object-contain" />
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
 
-        <!-- 画像 -->
-        <img id="viewer-image"
-            src="{{ first_page.image.url|default_if_none:'' }}"
-            alt="Page image"
-            class="transition-all duration-500 ease-in-out" />
-
-        <!-- 右矢印 -->
-        <button id="next-btn"
-                class="absolute right-2 bg-white/80 hover:bg-white rounded-full p-3 shadow transition disabled:opacity-40 z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </button>
+        <!-- 左右ボタンは Splide が自動生成するため不要（必要なら custom UI も可） -->
 
         <!-- 分岐メニュー -->
         <div class="absolute bottom-3 right-3">
@@ -129,6 +122,9 @@
                 class="hidden w-64 bg-white border rounded shadow-md p-2"></div>
         </div>
     </div>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/css/splide.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/js/splide.min.js"></script>
 
     <!-- ❤️ うぃーねボタン + 続きを描く -->
     <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0">
