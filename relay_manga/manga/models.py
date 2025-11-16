@@ -25,7 +25,6 @@ class Manga(models.Model):
     def __str__(self):
         return self.title
 
-
 class Page(models.Model):
     manga = models.ForeignKey(Manga, on_delete=models.CASCADE, related_name='pages')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -34,15 +33,15 @@ class Page(models.Model):
     # imagekit による自動リサイズ・圧縮
     image = ProcessedImageField(
         upload_to='pages/',
-        processors=[ResizeToFit(1280, 1280)],  # 最大1280pxにリサイズ
+        processors=[ResizeToFit(1280, 1280)],
         format='JPEG',
-        options={'quality': 85}  # 画質85で軽量化
+        options={'quality': 85}
     )
 
     # ✅ 正方形にトリミングしたサムネイル（100x100）
     thumbnail = ImageSpecField(
         source='image',
-        processors=[ResizeToFill(100, 100)],  # 長辺を基準にクロップして100x100に
+        processors=[ResizeToFill(100, 100)],
         format='JPEG',
         options={'quality': 80}
     )
@@ -53,7 +52,8 @@ class Page(models.Model):
         related_name='children',
         on_delete=models.CASCADE
     )
-    likes = models.PositiveIntegerField(default=0)  # 👍 うぃーね数
+
+    likes = models.PositiveIntegerField(default=0)
 
     @property
     def display_title(self):
@@ -70,22 +70,9 @@ class Page(models.Model):
             total += child.count_descendants()
         return total
 
-    @property
-    def likes(self):
-        return self.likes_rel.count()  # 👍 PageLike を数える
-
-    # --- 💡 優先度（うぃーね数＋子孫の総数） ---
     def get_priority(self):
-        """このページの優先度（うぃーね数＋子孫の総数）を返す"""
-        total = self.likes  # likes フィールドがある前提
+        """ページの優先度（likes + 子孫の優先度）"""
+        total = self.likes
         for child in self.children.all():
-            total += 1 + child.get_priority()  # 子も再帰的に足す
+            total += 1 + child.get_priority()
         return total
-
-class PageLike(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name="likes_rel")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ("user", "page")  # ✅ ユーザーごとに1回だけ
