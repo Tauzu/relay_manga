@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         likeCount.textContent = newPage.likes;
         likeForm.action = newPage.like_url;
 
-        // ✅ いいね状態を即時取得
+        // ✅ うぃーね状態を即時取得
         fetch(`/page/${newPage.id}/like_status/`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         })
@@ -42,10 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
             likeCount.textContent = data.likes;
             if (data.liked) {
                 likeButton.disabled = true;
-                likeButton.textContent = "👍 いいね済み";
+                likeButton.textContent = "👍 うぃーね済み";
             } else {
                 likeButton.disabled = false;
-                likeButton.textContent = "👍 いいね";
+                likeButton.textContent = "👍 うぃーね";
             }
         });
 
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ===== いいね処理 =====
+    // ===== うぃーね処理 =====
     likeForm.addEventListener("submit", function (event) {
         event.preventDefault();
         fetch(this.action, {
@@ -133,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then((response) => {
             if (response.redirected) {
-                // alert("いいねするにはログインが必要です。");
+                // alert("うぃーねするにはログインが必要です。");
                 window.location.href = response.url;
                 return;
             }
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
             likeCount.textContent = data.likes;
             if (data.already) {
                 likeButton.disabled = true;
-                likeButton.textContent = "👍 いいね済み";
+                likeButton.textContent = "👍 うぃーね済み";
             }
         });
     });

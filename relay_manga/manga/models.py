@@ -53,7 +53,7 @@ class Page(models.Model):
         related_name='children',
         on_delete=models.CASCADE
     )
-    likes = models.PositiveIntegerField(default=0)  # 👍 いいね数
+    likes = models.PositiveIntegerField(default=0)  # 👍 うぃーね数
 
     @property
     def display_title(self):
@@ -74,9 +74,9 @@ class Page(models.Model):
     def likes(self):
         return self.likes_rel.count()  # 👍 PageLike を数える
 
-    # --- 💡 優先度（いいね数＋子孫の総数） ---
+    # --- 💡 優先度（うぃーね数＋子孫の総数） ---
     def get_priority(self):
-        """このページの優先度（いいね数＋子孫の総数）を返す"""
+        """このページの優先度（うぃーね数＋子孫の総数）を返す"""
         total = self.likes  # likes フィールドがある前提
         for child in self.children.all():
             total += 1 + child.get_priority()  # 子も再帰的に足す

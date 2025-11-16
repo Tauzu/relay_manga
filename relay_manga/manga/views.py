@@ -69,7 +69,7 @@ def page_detail(request, page_id):
     if children:
         next_page = max(children, key=lambda c: c.priority)
 
-    # ✅ ユーザーがいいね済みかどうか判定
+    # ✅ ユーザーがうぃーね済みかどうか判定
     liked = False
     if request.user.is_authenticated:
         liked = PageLike.objects.filter(user=request.user, page=page).exists()
@@ -231,7 +231,7 @@ def like_page(request, page_id):
         login_url = f"/accounts/login/?{urlencode({'next': next_url})}"
         return redirect(login_url)
 
-    # すでにいいね済みかチェック
+    # すでにうぃーね済みかチェック
     like, created = PageLike.objects.get_or_create(user=request.user, page=page)
     return JsonResponse({
         "likes": page.likes,
@@ -239,7 +239,7 @@ def like_page(request, page_id):
     })
 
 def page_like_status(request, page_id):
-    """指定ページに対するログインユーザーのいいね状態を返す"""
+    """指定ページに対するログインユーザーのうぃーね状態を返す"""
     page = get_object_or_404(Page, id=page_id)
 
     liked = False

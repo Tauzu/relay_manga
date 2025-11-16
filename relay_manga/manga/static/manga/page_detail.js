@@ -1,4 +1,4 @@
-// ❤️ いいね処理
+// ❤️ うぃーね処理
 const likeForm = document.getElementById("like-form");
 if (likeForm) {
     likeForm.addEventListener("submit", function (event) {
@@ -12,7 +12,7 @@ if (likeForm) {
         })
         .then(response => {
             if (response.redirected) {
-                alert("いいねするにはログインが必要です。");
+                alert("うぃーねするにはログインが必要です。");
                 window.location.href = response.url;
                 return;
             }
@@ -24,7 +24,7 @@ if (likeForm) {
             if (data.already) {
                 const btn = document.getElementById("like-button");
                 btn.disabled = true;
-                btn.textContent = "👍 いいね済み";
+                btn.textContent = "👍 うぃーね済み";
             }
         });
     });
