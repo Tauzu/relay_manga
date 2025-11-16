@@ -33,22 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
         likeCount.textContent = newPage.likes;
         likeForm.action = newPage.like_url;
 
-        // ✅ うぃーね状態を即時取得
-        fetch(`/page/${newPage.id}/like_status/`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-        })
-        .then(res => res.json())
-        .then(data => {
-            likeCount.textContent = data.likes;
-            if (data.liked) {
-                likeButton.disabled = true;
-                likeButton.textContent = "👍 うぃーね済み";
-            } else {
-                likeButton.disabled = false;
-                likeButton.textContent = "👍 うぃーね";
-            }
-        });
-
         // ✅ 続きを描くリンク更新
         const continueLink = document.getElementById("continue-link");
         if (continueLink) {
@@ -58,6 +42,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // ✅ ページカウンター更新
         const counter = document.getElementById("page-counter");
         if (counter) counter.textContent = `${newIndex + 1} / ${pages.length}`;
+
+        // うぃーねボタン状態更新
+        const storageKey = `liked_page_${newPage.id}`;
+
+        if (localStorage.getItem(storageKey)) {
+            likeButton.disabled = true;
+            likeButton.textContent = "👍 うぃーね済み";
+        } else {
+            likeButton.disabled = false;
+            likeButton.textContent = "👍 うぃーね";
+        }
 
         // 状態更新
         currentIndex = newIndex;
@@ -121,9 +116,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ===== うぃーね処理 =====
+    // ===== うぃーね処理（ログイン不要＋localStorage） =====
     likeForm.addEventListener("submit", function (event) {
         event.preventDefault();
+
+        const currentPage = pages[currentIndex];
+        const storageKey = `liked_page_${currentPage.id}`;
+
+        // すでにうぃーね済みなら何もしない
+        if (localStorage.getItem(storageKey)) {
+            return;
+        }
+
         fetch(this.action, {
             method: "POST",
             headers: {
@@ -131,21 +135,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 "X-Requested-With": "XMLHttpRequest",
             },
         })
-        .then((response) => {
-            if (response.redirected) {
-                // alert("うぃーねするにはログインが必要です。");
-                window.location.href = response.url;
-                return;
-            }
-            return response.json();
-        })
+        .then((res) => res.json())
         .then((data) => {
-            if (!data) return;
+            // サーバーが問題なく処理した
             likeCount.textContent = data.likes;
-            if (data.already) {
-                likeButton.disabled = true;
-                likeButton.textContent = "👍 うぃーね済み";
-            }
+
+            // localStorage に保存（ログイン不要）
+            localStorage.setItem(storageKey, "1");
+
+            // うぃーね済みに UI を更新
+            likeButton.disabled = true;
+            likeButton.textContent = "👍 うぃーね済み";
+        })
+        .catch(err => {
+            console.error("うぃーね通信エラー:", err);
         });
     });
 

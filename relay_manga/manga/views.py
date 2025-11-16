@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Manga, Page, PageLike
+from .models import Manga, Page
 from .forms import MangaForm, PageForm
 import json
 
@@ -219,35 +219,17 @@ def page_list(request):
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from urllib.parse import urlencode
 
 @require_POST
 def like_page(request, page_id):
+    """ページに1うぃーね追加（ログインしていてもしていなくても同じ扱い）"""
     page = get_object_or_404(Page, id=page_id)
 
-    # ✅ 未ログイン時：ログインページへリダイレクト（戻り先は viewer ページ）
-    if not request.user.is_authenticated:
-        next_url = f"/page/{page_id}/viewer/"
-        login_url = f"/accounts/login/?{urlencode({'next': next_url})}"
-        return redirect(login_url)
-
-    # すでにうぃーね済みかチェック
-    like, created = PageLike.objects.get_or_create(user=request.user, page=page)
-    return JsonResponse({
-        "likes": page.likes,
-        "already": not created
-    })
-
-def page_like_status(request, page_id):
-    """指定ページに対するログインユーザーのうぃーね状態を返す"""
-    page = get_object_or_404(Page, id=page_id)
-
-    liked = False
-    if request.user.is_authenticated:
-        liked = PageLike.objects.filter(user=request.user, page=page).exists()
+    # 👍 likes を1つ加算
+    page.likes += 1
+    page.save(update_fields=["likes"])
 
     return JsonResponse({
-        "liked": liked,
         "likes": page.likes
     })
 
