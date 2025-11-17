@@ -169,12 +169,16 @@
 
 <!-- X共有用JS -->
 <script>
-    const title = "{{ manga.title }}";
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`${title} を読んでいます`);
+    const shareText = encodeURIComponent(
+        `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト`
+    );
 
-    document.getElementById("share-x-button").href =
-        `https://x.com/intent/tweet?text=${text}&url=${url}`;
+    const shareUrl = encodeURIComponent(window.location.href);
+
+    document.getElementById("share-x-button").addEventListener("click", () => {
+        const url = `https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    });
 </script>
 
 <script src="{% static 'manga/viewer.js' %}"></script>
