@@ -140,13 +140,23 @@
             ❤️ <span id="like-count">{{ first_page.likes }}</span>
         </span>
 
+        <!-- 公式SVGを使った X 共有ボタン -->
+        <a id="share-x-button"
+           href="#"
+           class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-black text-white rounded-lg font-semibold text-lg hover:bg-gray-800 transition">
+
+            <img src="{% static 'x-logo/logo.svg' %}" class="w-6 h-6" alt="X">
+
+            共有
+        </a>
+
         <a id="continue-link"
            href="{% url 'continue_page' first_page.id %}"
            class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-green-500 text-white rounded-lg font-semibold text-lg hover:bg-green-600 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
-            続きを描く
+            続きを投稿
         </a>
     </div>
 </div>
@@ -155,6 +165,20 @@
 <script>
     window.viewerPages = {{ pages_json|safe }};
     window.initialIndex = {{ current_index }};
+</script>
+
+<!-- X共有用JS -->
+<script>
+    const shareText = encodeURIComponent(
+        `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト`
+    );
+
+    const shareUrl = encodeURIComponent(window.location.href);
+
+    document.getElementById("share-x-button").addEventListener("click", () => {
+        const url = `https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    });
 </script>
 
 <script src="{% static 'manga/viewer.js' %}"></script>
