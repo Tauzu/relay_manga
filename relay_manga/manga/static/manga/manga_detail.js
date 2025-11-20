@@ -41,7 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
         },
 
         edges: { arrows: "to", smooth: false, color: { color: "#aaa" } },
-        interaction: { hover: true }
+        
+        interaction: {
+            hover: true,
+            dragNodes: false   // ノード移動禁止
+        }
+
     };
 
     const network = new vis.Network(container, data, options);
