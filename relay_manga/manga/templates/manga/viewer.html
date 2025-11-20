@@ -3,6 +3,23 @@
 
 {% block title %}{{ manga.title }} Viewer{% endblock %}
 
+{% block meta %}
+<meta property="og:type" content="article">
+
+<meta property="og:title" content="{{ manga.title }} - {{ page.display_title }}">
+<meta property="og:description" content="{{ manga.title }} の {{ page.display_title }} を読んでいます！">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+
+<!-- 画像（絶対URLに変換） -->
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page.image.url }}">
+
+<!-- X（Twitter）カード -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ manga.title }} - {{ page.display_title }}">
+<meta name="twitter:description" content="{{ manga.title }} の {{ page.display_title }} を読んでいます！">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page.image.url }}">
+{% endblock %}
+
 {% block content %}
 <style>
     /* 背景設定 */
@@ -170,7 +187,7 @@
 <!-- X共有用JS -->
 <script>
     const shareText = encodeURIComponent(
-        `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト`
+        `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト\n`
     );
 
     const shareUrl = encodeURIComponent(window.location.href);
