@@ -1,11 +1,16 @@
 from pathlib import Path
 import os
+from decouple import config, Csv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-px*z!w6f4yfib!eo(g(f9k3gy1&v&vp^5(+b^e0z@)$ojvef%%"
-DEBUG = True
-ALLOWED_HOSTS = []
+# 環境変数から読み込み（デフォルト値付き）
+SECRET_KEY = config('SECRET_KEY', default="django-insecure-px*z!w6f4yfib!eo(g(f9k3gy1&v&vp^5(+b^e0z@)$ojvef%%")
+DEBUG = config('DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+# Cloudinaryを使うかどうか
+USE_CLOUDINARY = config('USE_CLOUDINARY', default=False, cast=bool)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -14,10 +19,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'cloudinary_storage',
-    'cloudinary',
     'manga',
 ]
+
+# Cloudinaryを使う場合のみ追加
+if USE_CLOUDINARY:
+    INSTALLED_APPS.insert(6, 'cloudinary_storage')
+    INSTALLED_APPS.insert(7, 'cloudinary')
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -49,6 +57,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "relay_manga.wsgi.application"
 
+# データベース設定
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -81,10 +90,16 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_REDIRECT_URL = 'manga_list'
 LOGOUT_REDIRECT_URL = 'home'
 
-# ImageKit設定を削除
-# IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = 'imagekit.cachefiles.strategies.Optimistic'
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Cloudinary設定（USE_CLOUDINARYがTrueの場合のみ）
+if USE_CLOUDINARY:
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': config('CLOUDINARY_API_KEY'),
+        'API_SECRET': config('CLOUDINARY_API_SECRET'),
+    }
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # 本番環境設定の読み込み
 if os.environ.get('RENDER'):

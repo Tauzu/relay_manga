@@ -2,7 +2,7 @@ from .settings import *
 import os
 import dj_database_url
 
-# セキュリティ設定
+# 本番環境では必ずこれらを上書き
 DEBUG = False
 SECRET_KEY = os.environ.get('SECRET_KEY')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
