@@ -1,5 +1,5 @@
 # Media
-relay_manga/media/*
+media/
 
 # Python
 __pycache__/
@@ -16,10 +16,12 @@ __pycache__/
 db.sqlite3
 /media
 /staticfiles
+*.log
 
 # Virtual environment
 venv/
 .venv/
+env/
 
 # IDE / Editor
 .vscode/
@@ -30,3 +32,11 @@ venv/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Build files
+build/
+dist/
