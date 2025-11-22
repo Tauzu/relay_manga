@@ -10,7 +10,7 @@ def home(request):
 @login_required
 def create_manga(request):
     if request.method == "POST":
-        form = MangaForm(request.POST, request.FILES)  # ✅ FILES を追加
+        form = MangaForm(request.POST, request.FILES)
         if form.is_valid():
             manga = form.save(commit=False)
             manga.created_by = request.user
@@ -57,33 +57,6 @@ def manga_detail(request, manga_id):
         'manga': manga,
         'nodes': json.dumps(nodes),
         'edges': json.dumps(edges),
-    })
-
-def page_detail(request, page_id):
-    page = get_object_or_404(Page, id=page_id)
-
-    # 親ページ
-    parent = page.parent
-
-    # 子ページ一覧
-    children = list(page.children.all())
-
-    # 優先度で最大の子を「次のページ」に設定
-    next_page = None
-    if children:
-        next_page = max(children, key=lambda c: c.priority)
-
-    # ✅ ユーザーがうぃーね済みかどうか判定
-    liked = False
-    if request.user.is_authenticated:
-        liked = PageLike.objects.filter(user=request.user, page=page).exists()
-
-    return render(request, 'manga/page_detail.html', {
-        'page': page,
-        'parent': parent,
-        'next_page': next_page,
-        'children': children,
-        'liked': liked,   # ← テンプレートに渡す
     })
 
 def page_viewer(request, page_id):
@@ -133,7 +106,7 @@ def page_viewer(request, page_id):
             "likes": p.likes,
             "like_url": f"/page/{p.id}/like/",
             "author": p.author.username,
-            "children": children_data,  # ✅ 追加！
+            "children": children_data,
         })
 
     # 現在のページのインデックスを特定
@@ -148,7 +121,7 @@ def page_viewer(request, page_id):
     })
 
 def page_branches_json(request, page_id):
-    """指定ページの分岐（子ページ）を返す"""
+    from django.http import JsonResponse
     page = get_object_or_404(Page, id=page_id)
     children = page.children.all()
 
@@ -205,7 +178,7 @@ def continue_page(request, parent_id):
             page = form.save(commit=False)
             page.manga = manga
             page.author = request.user
-            page.parent = parent   # ✅ 親をセット
+            page.parent = parent
             page.save()
             return redirect('manga_detail', manga_id=manga.id)
     else:
@@ -214,7 +187,20 @@ def continue_page(request, parent_id):
     return render(request, 'manga/create_page.html', {
         'form': form,
         'manga': manga,
-        'parent': parent,   # ✅ ここで親情報をテンプレートに渡す
+        'parent': parent,
+    })
+
+@login_required
+def manga_editor(request, manga_id, parent_id=None):
+    """おえかきエディタ画面"""
+    manga = get_object_or_404(Manga, id=manga_id)
+    parent = None
+    if parent_id:
+        parent = get_object_or_404(Page, id=parent_id, manga=manga)
+    
+    return render(request, 'manga/manga_editor.html', {
+        'manga': manga,
+        'parent': parent,
     })
 
 def page_list(request):
@@ -228,15 +214,9 @@ from django.views.decorators.http import require_POST
 def like_page(request, page_id):
     """ページに1うぃーね追加（ログインしていてもしていなくても同じ扱い）"""
     page = get_object_or_404(Page, id=page_id)
-
-    # 👍 likes を1つ加算
     page.likes += 1
     page.save(update_fields=["likes"])
-
-    return JsonResponse({
-        "likes": page.likes
-    })
-
+    return JsonResponse({"likes": page.likes})
 
 from django.contrib.auth.views import LoginView
 
@@ -247,7 +227,6 @@ class CustomLoginView(LoginView):
         next_url = self.request.GET.get("next") or self.request.POST.get("next")
         return next_url or super().get_success_url()
 
-
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 
@@ -256,7 +235,7 @@ def signup(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)  # 登録後すぐログイン状態にする
+            login(request, user)
             return redirect("home")
     else:
         form = UserCreationForm()
