@@ -1,13 +1,14 @@
 from .settings import *
 import os
 import dj_database_url
+import cloudinary
 
-# 本番環境では必ずこれらを上書き
+# 本番環境では必ず上書き
 DEBUG = False
 SECRET_KEY = os.environ.get('SECRET_KEY')
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
-# データベース設定（PostgreSQL）
+# PostgreSQLデータベース
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
@@ -16,14 +17,21 @@ DATABASES = {
     )
 }
 
-# Cloudinary設定
+# Cloudinary設定（本番環境用）
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-# メディアファイルをCloudinaryに保存
+# Cloudinaryライブラリの設定
+cloudinary.config(
+    cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.environ.get('CLOUDINARY_API_KEY'),
+    api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+    secure=True
+)
+
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # 静的ファイル設定
