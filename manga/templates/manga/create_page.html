@@ -7,9 +7,10 @@
 <div class="max-w-6xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow">
     <h2 class="text-2xl font-bold text-center mb-8">新しいページを追加</h2>
 
+    <!-- ✅ スマホでは縦並び（grid-cols-1）、PCでは2列 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
-        <!-- 左カラム：前のページ -->
+        <!-- 🔹 左カラム：前のページ -->
         <div class="flex flex-col items-center">
             <h3 class="text-lg font-semibold text-gray-700 mb-4">前のページ</h3>
 
@@ -28,7 +29,7 @@
             {% endif %}
         </div>
 
-        <!-- 右カラム：新しいページ -->
+        <!-- 🔹 右カラム：新しいページ -->
         <div class="flex flex-col items-center">
             <h3 class="text-lg font-semibold text-gray-700 mb-4">新しいページ</h3>
 
@@ -49,12 +50,6 @@
                     <input id="id_image" name="image" type="file" accept="image/*" class="hidden">
                 </div>
 
-                <!-- おえかきボタン -->
-                <a href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
-                   class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base mb-4 text-center">
-                    🎨 おえかきする
-                </a>
-
                 <!-- タイトル入力 -->
                 <label class="block font-semibold mb-1 text-gray-700 self-start text-sm sm:text-base">ページタイトル（任意）</label>
                 {{ form.title }}
@@ -68,6 +63,7 @@
         </div>
     </div>
 
+    <!-- 🔹 ビューアに戻る -->
     {% if parent %}
         <div class="mt-8 text-center sm:text-left">
             <a href="{% url 'page_viewer' parent.id %}"
@@ -78,42 +74,21 @@
     {% endif %}
 </div>
 
+<!-- ✅ プレビューJS -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     const dropZone = document.getElementById("drop-zone");
     const inputFile = document.getElementById("id_image");
     const dropInner = document.getElementById("drop-inner");
 
-    // おえかきから戻ってきた場合
-    const savedDrawing = sessionStorage.getItem('mangaDrawing');
-    if (savedDrawing) {
-        dropInner.innerHTML = `<img src="${savedDrawing}" class="object-contain w-full h-full" alt="おえかき画像">`;
-        
-        // base64をBlobに変換してFileInputに設定
-        fetch(savedDrawing)
-            .then(res => res.blob())
-            .then(blob => {
-                const file = new File([blob], "manga-drawing.png", { type: "image/png" });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                inputFile.files = dataTransfer.files;
-            });
-        
-        // sessionStorageをクリア
-        sessionStorage.removeItem('mangaDrawing');
-    }
-
     dropZone.addEventListener("click", () => inputFile.click());
-    
     dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
         dropZone.classList.add("border-blue-400", "bg-blue-50");
     });
-    
     dropZone.addEventListener("dragleave", () => {
         dropZone.classList.remove("border-blue-400", "bg-blue-50");
     });
-    
     dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("border-blue-400", "bg-blue-50");
@@ -123,7 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
             showPreview(file);
         }
     });
-    
     inputFile.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) showPreview(file);
