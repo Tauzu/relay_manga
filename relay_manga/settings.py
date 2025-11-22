@@ -81,8 +81,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_REDIRECT_URL = 'manga_list'
 LOGOUT_REDIRECT_URL = 'home'
 
-# ImageKit
-IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = 'imagekit.cachefiles.strategies.Optimistic'
+# ImageKit設定を削除
+# IMAGEKIT_DEFAULT_CACHEFILE_STRATEGY = 'imagekit.cachefiles.strategies.Optimistic'
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

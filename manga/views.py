@@ -28,7 +28,6 @@ def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
     pages = list(manga.pages.select_related('author', 'parent'))
 
-    # --- 各ページの深さを計算 ---
     def get_depth(page):
         depth = 0
         p = page.parent
@@ -40,11 +39,14 @@ def manga_detail(request, manga_id):
     nodes = []
     edges = []
     for page in pages:
+        # CloudinaryFieldの場合、thumbnail.urlの代わりに直接変換URLを使用
+        thumbnail_url = page.image.build_url(width=100, height=100, crop='fill') if page.image else ''
+        
         nodes.append({
             "id": page.id,
             "title": page.display_title,
             "author": page.author.username,
-            "imageUrl": page.thumbnail.url,
+            "imageUrl": thumbnail_url,
             "level": get_depth(page),
         })
 
