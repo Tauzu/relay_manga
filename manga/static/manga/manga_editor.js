@@ -3,6 +3,16 @@ let isDrawingMode = false;
 let currentTool = 'select';
 let panelsApplied = false;
 
+// ズーム・パン関連
+let viewportTransform = { x: 0, y: 0, scale: 1 };
+let isPanning = false;
+let lastPanX = 0;
+let lastPanY = 0;
+
+// タッチ関連
+let lastTouchDistance = 0;
+let lastTouchCenter = { x: 0, y: 0 };
+
 // URLパラメータで再編集モードかどうかを判定
 const urlParams = new URLSearchParams(window.location.search);
 const isEditMode = urlParams.has('edit');
@@ -40,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     setupEventListeners();
+    setupZoomAndPan();
 });
 
 // コマ割りプレビュー
@@ -173,6 +184,214 @@ function setupEventListeners() {
             saveState();
         }
     });
+}
+
+// ズーム・パン機能の設定
+function setupZoomAndPan() {
+    const canvasWrapper = document.querySelector('.canvas-wrapper');
+    const canvasContainer = canvas.wrapperEl;
+    
+    // ズームボタン
+    document.getElementById('zoom-in').addEventListener('click', () => {
+        zoomCanvas(1.2);
+    });
+    
+    document.getElementById('zoom-out').addEventListener('click', () => {
+        zoomCanvas(0.8);
+    });
+    
+    document.getElementById('zoom-reset').addEventListener('click', () => {
+        resetZoom();
+    });
+    
+    // マウスホイールでズーム（PC）
+    canvasWrapper.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const delta = e.deltaY;
+        const zoomFactor = delta > 0 ? 0.9 : 1.1;
+        zoomCanvas(zoomFactor, e.offsetX, e.offsetY);
+    }, { passive: false });
+    
+    // マウスでパン（スペースキー + ドラッグ または 中クリックドラッグ）
+    let spacePressed = false;
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.code === 'Space' && !e.repeat) {
+            spacePressed = true;
+            canvasContainer.style.cursor = 'grab';
+        }
+    });
+    
+    document.addEventListener('keyup', function(e) {
+        if (e.code === 'Space') {
+            spacePressed = false;
+            canvasContainer.style.cursor = currentTool === 'select' ? 'default' : canvas.defaultCursor;
+        }
+    });
+    
+    canvasWrapper.addEventListener('mousedown', function(e) {
+        if (spacePressed || e.button === 1) { // スペース押下中 または 中クリック
+            e.preventDefault();
+            isPanning = true;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            canvasContainer.classList.add('panning');
+        }
+    });
+    
+    canvasWrapper.addEventListener('mousemove', function(e) {
+        if (isPanning) {
+            const dx = e.clientX - lastPanX;
+            const dy = e.clientY - lastPanY;
+            
+            viewportTransform.x += dx;
+            viewportTransform.y += dy;
+            
+            updateCanvasTransform();
+            
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+        }
+    });
+    
+    canvasWrapper.addEventListener('mouseup', function() {
+        if (isPanning) {
+            isPanning = false;
+            canvasContainer.classList.remove('panning');
+        }
+    });
+    
+    // タッチでズーム・パン（スマホ・タブレット）
+    let touches = [];
+    
+    canvasWrapper.addEventListener('touchstart', function(e) {
+        touches = Array.from(e.touches);
+        
+        if (touches.length === 2) {
+            // ピンチ開始
+            e.preventDefault();
+            lastTouchDistance = getTouchDistance(touches[0], touches[1]);
+            lastTouchCenter = getTouchCenter(touches[0], touches[1]);
+        } else if (touches.length === 1 && currentTool === 'select') {
+            // 1本指パン（選択モード時のみ）
+            lastPanX = touches[0].clientX;
+            lastPanY = touches[0].clientY;
+            
+            // 少し待ってから判定（描画と区別）
+            setTimeout(() => {
+                if (touches.length === 1) {
+                    isPanning = true;
+                }
+            }, 100);
+        }
+    }, { passive: false });
+    
+    canvasWrapper.addEventListener('touchmove', function(e) {
+        touches = Array.from(e.touches);
+        
+        if (touches.length === 2) {
+            // ピンチズーム
+            e.preventDefault();
+            
+            const currentDistance = getTouchDistance(touches[0], touches[1]);
+            const currentCenter = getTouchCenter(touches[0], touches[1]);
+            
+            const zoomFactor = currentDistance / lastTouchDistance;
+            
+            // ズーム中心点を計算
+            const rect = canvasWrapper.getBoundingClientRect();
+            const centerX = currentCenter.x - rect.left;
+            const centerY = currentCenter.y - rect.top;
+            
+            zoomCanvas(zoomFactor, centerX, centerY);
+            
+            // パンも同時に行う
+            const dx = currentCenter.x - lastTouchCenter.x;
+            const dy = currentCenter.y - lastTouchCenter.y;
+            viewportTransform.x += dx;
+            viewportTransform.y += dy;
+            updateCanvasTransform();
+            
+            lastTouchDistance = currentDistance;
+            lastTouchCenter = currentCenter;
+        } else if (touches.length === 1 && isPanning) {
+            // 1本指パン
+            e.preventDefault();
+            
+            const dx = touches[0].clientX - lastPanX;
+            const dy = touches[0].clientY - lastPanY;
+            
+            viewportTransform.x += dx;
+            viewportTransform.y += dy;
+            updateCanvasTransform();
+            
+            lastPanX = touches[0].clientX;
+            lastPanY = touches[0].clientY;
+        }
+    }, { passive: false });
+    
+    canvasWrapper.addEventListener('touchend', function(e) {
+        touches = Array.from(e.touches);
+        
+        if (touches.length < 2) {
+            lastTouchDistance = 0;
+        }
+        
+        if (touches.length === 0) {
+            isPanning = false;
+        }
+    });
+}
+
+// ズーム処理
+function zoomCanvas(factor, centerX, centerY) {
+    const oldScale = viewportTransform.scale;
+    const newScale = Math.min(Math.max(oldScale * factor, 0.1), 5); // 10%〜500%
+    
+    if (centerX !== undefined && centerY !== undefined) {
+        // ズーム中心点を基準に拡大
+        const rect = canvas.wrapperEl.getBoundingClientRect();
+        const canvasX = centerX - viewportTransform.x;
+        const canvasY = centerY - viewportTransform.y;
+        
+        viewportTransform.x -= canvasX * (newScale / oldScale - 1);
+        viewportTransform.y -= canvasY * (newScale / oldScale - 1);
+    }
+    
+    viewportTransform.scale = newScale;
+    updateCanvasTransform();
+}
+
+// ズームリセット
+function resetZoom() {
+    viewportTransform = { x: 0, y: 0, scale: 1 };
+    updateCanvasTransform();
+}
+
+// キャンバスの変形を更新
+function updateCanvasTransform() {
+    const canvasContainer = canvas.wrapperEl;
+    canvasContainer.style.transform = 
+        `translate(${viewportTransform.x}px, ${viewportTransform.y}px) scale(${viewportTransform.scale})`;
+    
+    // ズームレベル表示を更新
+    document.getElementById('zoom-level').textContent = 
+        Math.round(viewportTransform.scale * 100) + '%';
+}
+
+// タッチ間の距離を計算
+function getTouchDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// タッチの中心点を計算
+function getTouchCenter(touch1, touch2) {
+    return {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
+    };
 }
 
 // ツール切り替え

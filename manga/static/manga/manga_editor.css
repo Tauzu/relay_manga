@@ -97,10 +97,11 @@ body {
     justify-content: center;
     align-items: center;
     padding: 1rem;
-    overflow: auto;
+    overflow: hidden;
     min-height: 0;
-    touch-action: pan-x pan-y pinch-zoom;
+    touch-action: none;
     position: relative;
+    background: #e5e7eb;
 }
 
 .canvas-container {
@@ -108,7 +109,13 @@ body {
     background: white;
     border: 2px solid #333;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    margin: auto;
+    transform-origin: center center;
+    transition: none;
+    cursor: grab;
+}
+
+.canvas-container.panning {
+    cursor: grabbing;
 }
 
 
@@ -133,6 +140,51 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     max-width: 500px;
     width: 90%;
+}
+
+.zoom-controls {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border: 2px solid #ccc;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+    background: #f0f0f0;
+    transform: scale(1.05);
+}
+
+.zoom-btn:active {
+    transform: scale(0.95);
+}
+
+.zoom-info {
+    background: white;
+    border: 2px solid #ccc;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 @media (max-width: 640px) {
