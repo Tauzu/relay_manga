@@ -38,8 +38,8 @@
 
                 <!-- D&Dエリア -->
                 <div id="drop-zone"
-                    class="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative mb-4">
-                    <div id="drop-inner" class="flex flex-col items-center">
+                    class="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-400 transition overflow-hidden relative mb-4 cursor-pointer">
+                    <div id="drop-inner" class="flex flex-col items-center pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
@@ -50,8 +50,8 @@
                 </div>
 
                 <!-- おえかきボタン -->
-                <a href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
-                   class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base mb-4 text-center">
+                <a id="draw-btn" href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
+                   class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base mb-4 text-center block">
                     🎨 おえかきする
                 </a>
 
@@ -83,10 +83,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropZone = document.getElementById("drop-zone");
     const inputFile = document.getElementById("id_image");
     const dropInner = document.getElementById("drop-inner");
+    const drawBtn = document.getElementById("draw-btn");
+    let hasDrawing = false;
 
-    // おえかきから戻ってきた場合
+    // URLパラメータで新規作成かどうかを判定
+    const urlParams = new URLSearchParams(window.location.search);
+    const isNewPage = !urlParams.has('edit');
+
+    // おえかきから戻ってきた場合（editパラメータがある場合のみ）
     const savedDrawing = sessionStorage.getItem('mangaDrawing');
-    if (savedDrawing) {
+    if (savedDrawing && !isNewPage) {
         dropInner.innerHTML = `<img src="${savedDrawing}" class="object-contain w-full h-full" alt="おえかき画像">`;
         
         // base64をBlobに変換してFileInputに設定
@@ -97,13 +103,36 @@ document.addEventListener("DOMContentLoaded", () => {
                 const dataTransfer = new DataTransfer();
                 dataTransfer.items.add(file);
                 inputFile.files = dataTransfer.files;
+                hasDrawing = true;
             });
-        
-        // sessionStorageをクリア
+    } else {
+        // 新規ページの場合はsessionStorageをクリア
         sessionStorage.removeItem('mangaDrawing');
     }
 
-    dropZone.addEventListener("click", () => inputFile.click());
+    // おえかきボタン：画像がある場合は再編集モードで遷移
+    drawBtn.addEventListener('click', (e) => {
+        if (hasDrawing) {
+            e.preventDefault();
+            // 再編集フラグを付けて遷移
+            window.location.href = drawBtn.href + '?edit=1';
+        } else {
+            // 新規作成の場合はsessionStorageをクリア
+            sessionStorage.removeItem('mangaDrawing');
+        }
+    });
+
+    // プレビュー画像をクリックした時の動作
+    dropZone.addEventListener("click", (e) => {
+        // 画像が表示されている場合は、おえかき画面へ遷移
+        if (hasDrawing) {
+            e.preventDefault();
+            window.location.href = drawBtn.href + '?edit=1';
+        } else {
+            // 画像がない場合はファイル選択
+            inputFile.click();
+        }
+    });
     
     dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
@@ -121,12 +150,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (file) {
             inputFile.files = e.dataTransfer.files;
             showPreview(file);
+            hasDrawing = false;
+            sessionStorage.removeItem('mangaDrawing');
         }
     });
     
     inputFile.addEventListener("change", (e) => {
         const file = e.target.files[0];
-        if (file) showPreview(file);
+        if (file) {
+            showPreview(file);
+            hasDrawing = false;
+            sessionStorage.removeItem('mangaDrawing');
+        }
     });
 
     function showPreview(file) {
