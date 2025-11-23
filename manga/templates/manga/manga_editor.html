@@ -196,6 +196,9 @@
     </div>
 </div>
 
+<!-- メタタグでビューポート設定 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
+
 <!-- テキスト入力オーバーレイ -->
 <div id="text-input-overlay" class="text-input-overlay">
     <div class="text-input-box">
@@ -422,13 +425,18 @@ canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 let touches = [];
 
 function handleTouchStart(e) {
-    if (!panelsApplied) return;
-    
     // 2本指以上 = ズーム/パン操作（ブラウザのデフォルト動作を許可）
     if (e.touches.length >= 2) {
+        // 描画中だった場合は終了
+        if (isDrawing) {
+            stopDrawing();
+        }
         // 何もせず、ブラウザのデフォルト動作を許可
         return;
     }
+    
+    // コマ割り前は何もしない
+    if (!panelsApplied) return;
     
     // 1本指 = 描画
     if (e.touches.length === 1) {
@@ -456,6 +464,10 @@ function handleTouchStart(e) {
 function handleTouchMove(e) {
     // 2本指以上 = ズーム/パン操作（ブラウザのデフォルト動作を許可）
     if (e.touches.length >= 2) {
+        // 描画を強制停止
+        if (isDrawing) {
+            isDrawing = false;
+        }
         return;
     }
     
@@ -472,10 +484,21 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    if (e.touches.length === 0) {
+    if (e.touches.length === 0 && isDrawing) {
         const mouseEvent = new MouseEvent('mouseup', {});
         canvas.dispatchEvent(mouseEvent);
     }
+}
+
+function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
 }
 
 function startDrawing(e) {
@@ -524,17 +547,6 @@ function stopDrawing() {
         isDrawing = false;
         saveState();
     }
-}
-
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
 }
 
 // テキスト入力
