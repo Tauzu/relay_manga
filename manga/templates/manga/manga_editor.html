@@ -104,7 +104,7 @@
             max-height: 100%;
             height: auto;
             width: auto;
-            touch-action: none;
+            touch-action: pan-x pan-y pinch-zoom;
         }
         
         .text-input-overlay {
@@ -411,9 +411,70 @@ canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
 
-canvas.addEventListener('touchstart', handleTouch);
-canvas.addEventListener('touchmove', handleTouch);
-canvas.addEventListener('touchend', stopDrawing);
+canvas.addEventListener('touchstart', handleTouchStart);
+canvas.addEventListener('touchmove', handleTouchMove);
+canvas.addEventListener('touchend', handleTouchEnd);
+
+// タッチ操作用の変数
+let lastTouchDistance = 0;
+let isPinching = false;
+
+function handleTouchStart(e) {
+    if (e.touches.length === 2) {
+        // 2本指 = ピンチ操作
+        isPinching = true;
+        lastTouchDistance = getTouchDistance(e.touches);
+        e.preventDefault();
+    } else if (e.touches.length === 1 && !isPinching) {
+        // 1本指 = 描画
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
+    }
+}
+
+function handleTouchMove(e) {
+    if (e.touches.length === 2 && isPinching) {
+        // ピンチ操作中
+        e.preventDefault();
+        const currentDistance = getTouchDistance(e.touches);
+        const delta = currentDistance - lastTouchDistance;
+        
+        // ズーム処理（ブラウザのネイティブズームを使用）
+        if (Math.abs(delta) > 5) {
+            lastTouchDistance = currentDistance;
+        }
+    } else if (e.touches.length === 1 && !isPinching) {
+        // 描画
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
+    }
+}
+
+function handleTouchEnd(e) {
+    if (e.touches.length < 2) {
+        isPinching = false;
+        lastTouchDistance = 0;
+    }
+    
+    if (e.touches.length === 0) {
+        const mouseEvent = new MouseEvent('mouseup', {});
+        canvas.dispatchEvent(mouseEvent);
+    }
+}
+
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
 
 function startDrawing(e) {
     if (!panelsApplied) return;
@@ -472,17 +533,6 @@ function getMousePos(e) {
         x: (e.clientX - rect.left) * scaleX,
         y: (e.clientY - rect.top) * scaleY
     };
-}
-
-function handleTouch(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                     e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-    });
-    canvas.dispatchEvent(mouseEvent);
 }
 
 // テキスト入力
