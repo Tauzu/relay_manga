@@ -10,12 +10,14 @@
             overflow: hidden;
             margin: 0;
             padding: 0;
+            touch-action: pan-x pan-y pinch-zoom;
         }
         .editor-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
             background: #f5f5f5;
+            touch-action: pan-x pan-y pinch-zoom;
         }
         
         .toolbar {
@@ -93,6 +95,7 @@
             padding: 1rem;
             overflow: auto;
             min-height: 0;
+            touch-action: pan-x pan-y pinch-zoom;
         }
         
         #manga-canvas {
@@ -104,7 +107,7 @@
             max-height: 100%;
             height: auto;
             width: auto;
-            touch-action: pan-x pan-y pinch-zoom;
+            touch-action: auto;
         }
         
         .text-input-overlay {
@@ -411,22 +414,36 @@ canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
 
-canvas.addEventListener('touchstart', handleTouchStart);
-canvas.addEventListener('touchmove', handleTouchMove);
-canvas.addEventListener('touchend', handleTouchEnd);
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
 // タッチ操作用の変数
-let lastTouchDistance = 0;
-let isPinching = false;
+let touches = [];
 
 function handleTouchStart(e) {
-    if (e.touches.length === 2) {
-        // 2本指 = ピンチ操作
-        isPinching = true;
-        lastTouchDistance = getTouchDistance(e.touches);
+    if (!panelsApplied) return;
+    
+    // 2本指以上 = ズーム/パン操作（ブラウザのデフォルト動作を許可）
+    if (e.touches.length >= 2) {
+        // 何もせず、ブラウザのデフォルト動作を許可
+        return;
+    }
+    
+    // 1本指 = 描画
+    if (e.touches.length === 1) {
+        if (currentTool === 'text') {
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            showTextInput(mouseEvent);
+            e.preventDefault();
+            return;
+        }
+        
         e.preventDefault();
-    } else if (e.touches.length === 1 && !isPinching) {
-        // 1本指 = 描画
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent('mousedown', {
             clientX: touch.clientX,
@@ -437,18 +454,14 @@ function handleTouchStart(e) {
 }
 
 function handleTouchMove(e) {
-    if (e.touches.length === 2 && isPinching) {
-        // ピンチ操作中
+    // 2本指以上 = ズーム/パン操作（ブラウザのデフォルト動作を許可）
+    if (e.touches.length >= 2) {
+        return;
+    }
+    
+    // 1本指 = 描画
+    if (e.touches.length === 1 && isDrawing) {
         e.preventDefault();
-        const currentDistance = getTouchDistance(e.touches);
-        const delta = currentDistance - lastTouchDistance;
-        
-        // ズーム処理（ブラウザのネイティブズームを使用）
-        if (Math.abs(delta) > 5) {
-            lastTouchDistance = currentDistance;
-        }
-    } else if (e.touches.length === 1 && !isPinching) {
-        // 描画
         const touch = e.touches[0];
         const mouseEvent = new MouseEvent('mousemove', {
             clientX: touch.clientX,
@@ -459,21 +472,10 @@ function handleTouchMove(e) {
 }
 
 function handleTouchEnd(e) {
-    if (e.touches.length < 2) {
-        isPinching = false;
-        lastTouchDistance = 0;
-    }
-    
     if (e.touches.length === 0) {
         const mouseEvent = new MouseEvent('mouseup', {});
         canvas.dispatchEvent(mouseEvent);
     }
-}
-
-function getTouchDistance(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
 }
 
 function startDrawing(e) {
