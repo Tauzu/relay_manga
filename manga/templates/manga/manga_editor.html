@@ -104,6 +104,7 @@
             max-height: 100%;
             height: auto;
             width: auto;
+            touch-action: none;
         }
         
         .text-input-overlay {
@@ -221,6 +222,35 @@ let historyStep = -1;
 ctx.fillStyle = 'white';
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+// URLパラメータで再編集モードかどうかを判定
+const urlParams = new URLSearchParams(window.location.search);
+const isEditMode = urlParams.has('edit');
+
+// 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
+const savedDrawing = sessionStorage.getItem('mangaDrawing');
+if (savedDrawing && isEditMode) {
+    const img = new Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        // コマ割りが適用された状態として扱う
+        panelsApplied = true;
+        document.getElementById('step1-section').style.display = 'none';
+        document.getElementById('step2-section').style.display = 'flex';
+        document.getElementById('brush-size-section').style.display = 'flex';
+        document.getElementById('history-section').style.display = 'flex';
+        document.getElementById('action-section').style.display = 'flex';
+        // 初期状態を履歴に保存
+        saveState();
+    };
+    img.src = savedDrawing;
+} else {
+    // 新規作成の場合はsessionStorageをクリアして初期プレビュー表示
+    if (!isEditMode) {
+        sessionStorage.removeItem('mangaDrawing');
+    }
+    updatePanelPreview();
+}
+
 // 履歴を保存
 function saveState() {
     historyStep++;
@@ -298,9 +328,6 @@ function updatePanelPreview() {
 // 段数・列数変更時にプレビュー更新
 document.getElementById('panel-rows').addEventListener('change', updatePanelPreview);
 document.getElementById('panel-cols').addEventListener('change', updatePanelPreview);
-
-// 初期プレビュー表示
-updatePanelPreview();
 
 // ツール切り替え
 document.getElementById('tool-pencil').addEventListener('click', () => {
@@ -405,6 +432,8 @@ function startDrawing(e) {
 function draw(e) {
     if (!isDrawing) return;
     
+    e.preventDefault();
+    
     const pos = getMousePos(e);
     
     ctx.beginPath();
@@ -508,9 +537,9 @@ document.getElementById('save-image').addEventListener('click', () => {
         reader.onloadend = () => {
             sessionStorage.setItem('mangaDrawing', reader.result);
             {% if parent %}
-                window.location.href = "{% url 'continue_page' parent.id %}";
+                window.location.href = "{% url 'continue_page' parent.id %}?edit=1";
             {% else %}
-                window.location.href = "{% url 'create_page' manga.id %}";
+                window.location.href = "{% url 'create_page' manga.id %}?edit=1";
             {% endif %}
         };
         reader.readAsDataURL(blob);
