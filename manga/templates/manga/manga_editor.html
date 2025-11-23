@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
     <title>マンガをえがく</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fabric.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    
     <link rel="stylesheet" href="{% static 'manga/manga_editor.css' %}">
 </head>
 <body data-parent-id="{% if parent %}{{ parent.id }}{% endif %}" data-manga-id="{{ manga.id }}">
@@ -15,53 +19,61 @@
     <div class="toolbar">
         <!-- ステップ1: コマ割り選択 -->
         <div class="tool-section" id="step1-section">
-            <label class="font-semibold">コマ割り:</label>
-            <select id="panel-rows" class="border rounded px-2 py-1">
+            <label class="font-semibold text-sm">コマ割り:</label>
+            <select id="panel-rows" class="border rounded px-2 py-1 text-sm">
                 <option value="1" selected>1段</option>
                 <option value="2">2段</option>
                 <option value="3">3段</option>
+                <option value="4">4段</option>
             </select>
             <span>×</span>
-            <select id="panel-cols" class="border rounded px-2 py-1">
+            <select id="panel-cols" class="border rounded px-2 py-1 text-sm">
                 <option value="1" selected>1列</option>
                 <option value="2">2列</option>
                 <option value="3">3列</option>
+                <option value="4">4列</option>
             </select>
             <button id="apply-panels" class="tool-btn btn-primary">決定</button>
         </div>
         
         <!-- ステップ2: 描画ツール -->
         <div class="tool-section" id="step2-section" style="display: none;">
-            <button id="tool-pencil" class="tool-btn active">✏️ 鉛筆</button>
-            <button id="tool-eraser" class="tool-btn">🧹 消しゴム</button>
-            <button id="tool-text" class="tool-btn">📝 テキスト</button>
+            <button id="tool-select" class="tool-btn active" title="選択ツール">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+            </button>
+            <button id="tool-pencil" class="tool-btn" title="鉛筆">✏️</button>
+            <button id="tool-eraser" class="tool-btn" title="消しゴム">🧹</button>
+            <button id="tool-text" class="tool-btn" title="テキスト">📝</button>
+            <button id="tool-rect" class="tool-btn" title="長方形">▭</button>
+            <button id="tool-circle" class="tool-btn" title="円">○</button>
         </div>
         
-        <div class="tool-section" id="brush-size-section" style="display: none;">
-            <label class="text-sm">太さ:</label>
-            <input id="brush-size" type="range" min="1" max="20" value="3" class="w-20">
-            <span id="brush-size-value" class="text-sm">3</span>
+        <!-- ブラシ設定 -->
+        <div class="tool-section" id="brush-section" style="display: none;">
+            <label class="text-xs sm:text-sm">太さ:</label>
+            <input id="brush-size" type="range" min="1" max="50" value="3" class="w-16 sm:w-20">
+            <span id="brush-size-value" class="text-xs sm:text-sm">3</span>
         </div>
         
-        <div class="tool-section" id="font-size-section" style="display: none;">
-            <label class="text-sm">文字:</label>
-            <input id="font-size" type="range" min="12" max="60" value="20" class="w-20">
-            <span id="font-size-value" class="text-sm">20</span>
-        </div>
-        
+        <!-- 履歴操作 -->
         <div class="tool-section" id="history-section" style="display: none;">
-            <button id="undo-btn" class="tool-btn" disabled>↶ Undo</button>
-            <button id="redo-btn" class="tool-btn" disabled>↷ Redo</button>
+            <button id="undo-btn" class="tool-btn" disabled title="元に戻す">↶</button>
+            <button id="redo-btn" class="tool-btn" disabled title="やり直す">↷</button>
+            <button id="delete-selected" class="tool-btn btn-danger" title="選択を削除">🗑️</button>
         </div>
         
+        <!-- アクション -->
         <div class="tool-section" id="action-section" style="display: none;">
-            <button id="clear-canvas" class="tool-btn">🗑️ クリア</button>
+            <button id="clear-canvas" class="tool-btn">クリア</button>
             <button id="save-image" class="tool-btn btn-success">✅ 完成</button>
         </div>
         
         <!-- スペーサー -->
         <div class="spacer"></div>
         
+        <!-- 戻るボタン -->
         <div class="tool-section">
             <button id="back-btn" class="tool-btn">← 戻る</button>
         </div>
@@ -69,9 +81,7 @@
     
     <!-- キャンバス -->
     <div class="canvas-wrapper">
-        <div id="canvas-container" style="position: relative; display: inline-block;">
-            <canvas id="manga-canvas" width="800" height="800"></canvas>
-        </div>
+        <canvas id="manga-canvas"></canvas>
     </div>
 </div>
 
@@ -80,18 +90,31 @@
     <div class="text-input-box">
         <h3 class="text-lg font-bold mb-3">テキストを入力</h3>
         <textarea id="text-content" class="w-full border rounded p-2 mb-3" rows="3" 
-                  placeholder="セリフを入力してください"></textarea>
+                  placeholder="テキストを入力してください"></textarea>
+        
         <div class="mb-3">
             <label class="text-sm font-semibold">フォントサイズ:</label>
-            <input id="text-font-size" type="range" min="12" max="60" value="20" class="w-full">
+            <input id="text-font-size" type="range" min="12" max="80" value="20" class="w-full">
             <span id="text-font-size-value" class="text-sm">20px</span>
         </div>
+        
+        <!-- 隠しフィールド（クリック位置を保存） -->
+        <input type="hidden" id="text-click-x">
+        <input type="hidden" id="text-click-y">
+        
         <div class="flex gap-2 justify-end">
-            <button id="text-cancel" class="px-4 py-2 border rounded">キャンセル</button>
-            <button id="text-ok" class="px-4 py-2 bg-blue-500 text-white rounded">OK</button>
+            <button id="text-cancel" class="px-4 py-2 border rounded hover:bg-gray-100">キャンセル</button>
+            <button id="text-ok" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">OK</button>
         </div>
     </div>
 </div>
+
+<!-- フォントサイズ表示の更新 -->
+<script>
+document.getElementById('text-font-size').addEventListener('input', function(e) {
+    document.getElementById('text-font-size-value').textContent = e.target.value + 'px';
+});
+</script>
 
 <script src="{% static 'manga/manga_editor.js' %}"></script>
 </body>

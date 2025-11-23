@@ -1,616 +1,449 @@
-const canvas = document.getElementById('manga-canvas');
-const canvasContainer = document.getElementById('canvas-container');
-const ctx = canvas.getContext('2d');
-let isDrawing = false;
-let currentTool = 'pencil';
-let brushSize = 3;
-let fontSize = 20;
+let canvas;
+let isDrawingMode = false;
+let currentTool = 'select';
 let panelsApplied = false;
-
-// テキストボックス管理
-let textBoxes = [];
-let textBoxIdCounter = 0;
-
-// Undo/Redo用の履歴
-let history = [];
-let historyStep = -1;
-
-// 初期化: キャンバスを白で塗りつぶし
-ctx.fillStyle = 'white';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 // URLパラメータで再編集モードかどうかを判定
 const urlParams = new URLSearchParams(window.location.search);
 const isEditMode = urlParams.has('edit');
 
-// 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
-const savedDrawing = sessionStorage.getItem('mangaDrawing');
-if (savedDrawing && isEditMode) {
-    const img = new Image();
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-        panelsApplied = true;
-        document.getElementById('step1-section').style.display = 'none';
-        document.getElementById('step2-section').style.display = 'flex';
-        document.getElementById('brush-size-section').style.display = 'flex';
-        document.getElementById('font-size-section').style.display = 'flex';
-        document.getElementById('history-section').style.display = 'flex';
-        document.getElementById('action-section').style.display = 'flex';
-        saveState();
-    };
-    img.src = savedDrawing;
-} else {
-    if (!isEditMode) {
-        sessionStorage.removeItem('mangaDrawing');
+// 初期化
+document.addEventListener('DOMContentLoaded', function() {
+    canvas = new fabric.Canvas('manga-canvas', {
+        width: 800,
+        height: 800,
+        backgroundColor: '#ffffff',
+        enableRetinaScaling: false // Retinaスケーリングを無効化して警告を回避
+    });
+    
+    // textBaselineの警告を回避
+    fabric.Object.prototype.set({
+        transparentCorners: false,
+        borderColor: '#2196F3',
+        cornerColor: '#2196F3',
+        cornerSize: 10
+    });
+
+    // 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
+    const savedDrawing = sessionStorage.getItem('mangaDrawing');
+    if (savedDrawing && isEditMode) {
+        canvas.loadFromJSON(savedDrawing, function() {
+            canvas.renderAll();
+            panelsApplied = true;
+            switchToDrawingMode();
+        });
+    } else {
+        if (!isEditMode) {
+            sessionStorage.removeItem('mangaDrawing');
+        }
+        updatePanelPreview();
     }
-    updatePanelPreview();
+
+    setupEventListeners();
+});
+
+// コマ割りプレビュー
+function updatePanelPreview() {
+    const rows = parseInt(document.getElementById('panel-rows').value);
+    const cols = parseInt(document.getElementById('panel-cols').value);
+    
+    canvas.clear();
+    canvas.backgroundColor = '#ffffff';
+    
+    const margin = 20;
+    const usableWidth = canvas.width - (margin * (cols + 1));
+    const usableHeight = canvas.height - (margin * (rows + 1));
+    const panelWidth = usableWidth / cols;
+    const panelHeight = usableHeight / rows;
+    
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const x = margin + col * (panelWidth + margin);
+            const y = margin + row * (panelHeight + margin);
+            
+            const rect = new fabric.Rect({
+                left: x,
+                top: y,
+                width: panelWidth,
+                height: panelHeight,
+                fill: 'transparent',
+                stroke: '#ccc',
+                strokeWidth: 2,
+                selectable: false,
+                evented: false
+            });
+            canvas.add(rect);
+        }
+    }
+    canvas.renderAll();
 }
 
-// 履歴を保存
+// コマ割り適用
+document.getElementById('apply-panels').addEventListener('click', function() {
+    const rows = parseInt(document.getElementById('panel-rows').value);
+    const cols = parseInt(document.getElementById('panel-cols').value);
+    
+    canvas.clear();
+    canvas.backgroundColor = '#ffffff';
+    
+    const margin = 20;
+    const usableWidth = canvas.width - (margin * (cols + 1));
+    const usableHeight = canvas.height - (margin * (rows + 1));
+    const panelWidth = usableWidth / cols;
+    const panelHeight = usableHeight / rows;
+    
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const x = margin + col * (panelWidth + margin);
+            const y = margin + row * (panelHeight + margin);
+            
+            const rect = new fabric.Rect({
+                left: x,
+                top: y,
+                width: panelWidth,
+                height: panelHeight,
+                fill: 'transparent',
+                stroke: '#000',
+                strokeWidth: 3,
+                selectable: false,
+                evented: false,
+                lockMovementX: true,
+                lockMovementY: true,
+                hasControls: false
+            });
+            canvas.add(rect);
+        }
+    }
+    
+    canvas.renderAll();
+    saveState();
+    panelsApplied = true;
+    switchToDrawingMode();
+});
+
+function switchToDrawingMode() {
+    document.getElementById('step1-section').style.display = 'none';
+    document.getElementById('step2-section').style.display = 'flex';
+    document.getElementById('brush-section').style.display = 'flex';
+    document.getElementById('history-section').style.display = 'flex';
+    document.getElementById('action-section').style.display = 'flex';
+}
+
+// イベントリスナー設定
+function setupEventListeners() {
+    // ツール切り替え
+    document.getElementById('tool-select').addEventListener('click', () => setTool('select'));
+    document.getElementById('tool-pencil').addEventListener('click', () => setTool('pencil'));
+    document.getElementById('tool-eraser').addEventListener('click', () => setTool('eraser'));
+    document.getElementById('tool-text').addEventListener('click', () => setTool('text'));
+    document.getElementById('tool-rect').addEventListener('click', () => setTool('rect'));
+    document.getElementById('tool-circle').addEventListener('click', () => setTool('circle'));
+    
+    // ブラシサイズ
+    document.getElementById('brush-size').addEventListener('input', function(e) {
+        const size = parseInt(e.target.value);
+        document.getElementById('brush-size-value').textContent = size;
+        if (canvas.freeDrawingBrush) {
+            canvas.freeDrawingBrush.width = size;
+        }
+    });
+    
+    // 履歴操作
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.getElementById('redo-btn').addEventListener('click', redo);
+    
+    // アクション
+    document.getElementById('delete-selected').addEventListener('click', deleteSelected);
+    document.getElementById('clear-canvas').addEventListener('click', clearCanvas);
+    document.getElementById('save-image').addEventListener('click', saveImage);
+    document.getElementById('back-btn').addEventListener('click', goBack);
+    
+    // コマ割り設定変更
+    document.getElementById('panel-rows').addEventListener('change', updatePanelPreview);
+    document.getElementById('panel-cols').addEventListener('change', updatePanelPreview);
+    
+    // テキスト入力
+    document.getElementById('text-ok').addEventListener('click', addTextToCanvas);
+    document.getElementById('text-cancel').addEventListener('click', closeTextInput);
+    
+    // Fabricイベント
+    canvas.on('object:modified', saveState);
+    canvas.on('object:added', function(e) {
+        if (e.target && !e.target.isTemporary) {
+            saveState();
+        }
+    });
+}
+
+// ツール切り替え
+function setTool(tool) {
+    currentTool = tool;
+    
+    // ボタンの状態更新
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tool-${tool}`).classList.add('active');
+    
+    // 既存のイベントリスナーをクリア
+    canvas.off('mouse:down');
+    canvas.off('mouse:move');
+    canvas.off('mouse:up');
+    
+    // キャンバスの設定
+    canvas.isDrawingMode = false;
+    canvas.selection = true;
+    
+    switch(tool) {
+        case 'select':
+            canvas.defaultCursor = 'default';
+            canvas.hoverCursor = 'move';
+            break;
+            
+        case 'pencil':
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value);
+            canvas.freeDrawingBrush.color = '#000000';
+            break;
+            
+        case 'eraser':
+            canvas.isDrawingMode = true;
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            canvas.freeDrawingBrush.width = parseInt(document.getElementById('brush-size').value) * 2;
+            canvas.freeDrawingBrush.color = '#ffffff';
+            break;
+            
+        case 'text':
+            canvas.defaultCursor = 'text';
+            canvas.selection = false; // テキストモード中は選択を無効化
+            canvas.on('mouse:down', handleTextClick);
+            break;
+            
+        case 'rect':
+            canvas.defaultCursor = 'crosshair';
+            canvas.selection = false; // 図形描画中は選択を無効化
+            startShapeDrawing('rect');
+            break;
+            
+        case 'circle':
+            canvas.defaultCursor = 'crosshair';
+            canvas.selection = false; // 図形描画中は選択を無効化
+            startShapeDrawing('circle');
+            break;
+    }
+}
+
+// 図形描画
+let isDrawingShape = false;
+let shapeStartX, shapeStartY;
+let currentShape;
+
+function startShapeDrawing(type) {
+    canvas.on('mouse:down', function(o) {
+        // オブジェクトをクリックした場合は無視
+        if (o.target) return;
+        
+        isDrawingShape = true;
+        const pointer = canvas.getPointer(o.e);
+        shapeStartX = pointer.x;
+        shapeStartY = pointer.y;
+        
+        if (type === 'rect') {
+            currentShape = new fabric.Rect({
+                left: shapeStartX,
+                top: shapeStartY,
+                width: 0,
+                height: 0,
+                fill: 'transparent',
+                stroke: '#000000',
+                strokeWidth: 3
+            });
+        } else if (type === 'circle') {
+            currentShape = new fabric.Circle({
+                left: shapeStartX,
+                top: shapeStartY,
+                radius: 0,
+                fill: 'transparent',
+                stroke: '#000000',
+                strokeWidth: 3
+            });
+        }
+        
+        currentShape.isTemporary = true;
+        canvas.add(currentShape);
+    });
+    
+    canvas.on('mouse:move', function(o) {
+        if (!isDrawingShape) return;
+        
+        const pointer = canvas.getPointer(o.e);
+        
+        if (type === 'rect') {
+            const width = pointer.x - shapeStartX;
+            const height = pointer.y - shapeStartY;
+            
+            currentShape.set({
+                width: Math.abs(width),
+                height: Math.abs(height),
+                left: width > 0 ? shapeStartX : pointer.x,
+                top: height > 0 ? shapeStartY : pointer.y
+            });
+        } else if (type === 'circle') {
+            const radius = Math.sqrt(
+                Math.pow(pointer.x - shapeStartX, 2) + 
+                Math.pow(pointer.y - shapeStartY, 2)
+            ) / 2;
+            currentShape.set({ radius: radius });
+        }
+        
+        canvas.renderAll();
+    });
+    
+    canvas.on('mouse:up', function() {
+        if (!isDrawingShape) return;
+        
+        isDrawingShape = false;
+        if (currentShape) {
+            currentShape.isTemporary = false;
+            currentShape.setCoords();
+            saveState();
+        }
+        
+        // 図形描画完了後、選択モードに戻る
+        setTool('select');
+    });
+}
+
+// テキスト追加
+function handleTextClick(o) {
+    // オブジェクトをクリックした場合は無視
+    if (o.target) return;
+    
+    const pointer = canvas.getPointer(o.e);
+    document.getElementById('text-click-x').value = pointer.x;
+    document.getElementById('text-click-y').value = pointer.y;
+    document.getElementById('text-input-overlay').style.display = 'flex';
+    document.getElementById('text-content').focus();
+}
+
+function addTextToCanvas() {
+    const text = document.getElementById('text-content').value.trim();
+    const fontSize = parseInt(document.getElementById('text-font-size').value);
+    const x = parseFloat(document.getElementById('text-click-x').value);
+    const y = parseFloat(document.getElementById('text-click-y').value);
+    
+    if (text) {
+        const textObj = new fabric.IText(text, {
+            left: x,
+            top: y,
+            fontSize: fontSize,
+            fill: '#000000',
+            fontFamily: 'sans-serif',
+            textBaseline: 'middle' // 警告を回避するために明示的に設定
+        });
+        canvas.add(textObj);
+        canvas.setActiveObject(textObj);
+        canvas.renderAll();
+    }
+    
+    closeTextInput();
+    
+    // テキスト追加後、選択モードに戻る
+    setTool('select');
+}
+
+function closeTextInput() {
+    document.getElementById('text-input-overlay').style.display = 'none';
+    document.getElementById('text-content').value = '';
+}
+
+// 履歴管理
+let history = [];
+let historyStep = -1;
+
 function saveState() {
     historyStep++;
     if (historyStep < history.length) {
         history.length = historyStep;
     }
-    history.push({
-        canvas: canvas.toDataURL(),
-        textBoxes: JSON.parse(JSON.stringify(textBoxes))
-    });
+    history.push(JSON.stringify(canvas.toJSON()));
     updateHistoryButtons();
 }
 
-// 履歴ボタンの有効/無効を更新
+function undo() {
+    if (historyStep > 0) {
+        historyStep--;
+        canvas.loadFromJSON(history[historyStep], function() {
+            canvas.renderAll();
+            updateHistoryButtons();
+        });
+    }
+}
+
+function redo() {
+    if (historyStep < history.length - 1) {
+        historyStep++;
+        canvas.loadFromJSON(history[historyStep], function() {
+            canvas.renderAll();
+            updateHistoryButtons();
+        });
+    }
+}
+
 function updateHistoryButtons() {
     document.getElementById('undo-btn').disabled = historyStep <= 0;
     document.getElementById('redo-btn').disabled = historyStep >= history.length - 1;
 }
 
-// Undo
-document.getElementById('undo-btn').addEventListener('click', () => {
-    if (historyStep > 0) {
-        historyStep--;
-        const state = history[historyStep];
-        const img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            textBoxes = JSON.parse(JSON.stringify(state.textBoxes));
-            renderTextBoxes();
-            updateHistoryButtons();
-        };
-        img.src = state.canvas;
-    }
-});
-
-// Redo
-document.getElementById('redo-btn').addEventListener('click', () => {
-    if (historyStep < history.length - 1) {
-        historyStep++;
-        const state = history[historyStep];
-        const img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            textBoxes = JSON.parse(JSON.stringify(state.textBoxes));
-            renderTextBoxes();
-            updateHistoryButtons();
-        };
-        img.src = state.canvas;
-    }
-});
-
-// コマ割りプレビュー（段数・列数変更時）
-function updatePanelPreview() {
-    const rows = parseInt(document.getElementById('panel-rows').value);
-    const cols = parseInt(document.getElementById('panel-cols').value);
-    
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const margin = 20;
-    const usableWidth = canvas.width - (margin * (cols + 1));
-    const usableHeight = canvas.height - (margin * (rows + 1));
-    const panelWidth = usableWidth / cols;
-    const panelHeight = usableHeight / rows;
-    
-    ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 2;
-    
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const x = margin + col * (panelWidth + margin);
-            const y = margin + row * (panelHeight + margin);
-            ctx.strokeRect(x, y, panelWidth, panelHeight);
-        }
-    }
-}
-
-// 段数・列数変更時にプレビュー更新
-document.getElementById('panel-rows').addEventListener('change', updatePanelPreview);
-document.getElementById('panel-cols').addEventListener('change', updatePanelPreview);
-
-// ツール切り替え
-document.getElementById('tool-pencil').addEventListener('click', () => {
-    currentTool = 'pencil';
-    updateToolButtons();
-});
-
-document.getElementById('tool-eraser').addEventListener('click', () => {
-    currentTool = 'eraser';
-    updateToolButtons();
-});
-
-document.getElementById('tool-text').addEventListener('click', () => {
-    currentTool = 'text';
-    updateToolButtons();
-});
-
-function updateToolButtons() {
-    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-    if (currentTool === 'pencil') document.getElementById('tool-pencil').classList.add('active');
-    if (currentTool === 'eraser') document.getElementById('tool-eraser').classList.add('active');
-    if (currentTool === 'text') document.getElementById('tool-text').classList.add('active');
-}
-
-// ブラシサイズ
-const brushSizeInput = document.getElementById('brush-size');
-const brushSizeValue = document.getElementById('brush-size-value');
-brushSizeInput.addEventListener('input', (e) => {
-    brushSize = parseInt(e.target.value);
-    brushSizeValue.textContent = brushSize;
-});
-
-// フォントサイズ（ツールバー用）
-const fontSizeInput = document.getElementById('font-size');
-const fontSizeValue = document.getElementById('font-size-value');
-fontSizeInput.addEventListener('input', (e) => {
-    fontSize = parseInt(e.target.value);
-    fontSizeValue.textContent = fontSize;
-});
-
-// テキスト入力のフォントサイズ
-const textFontSizeInput = document.getElementById('text-font-size');
-const textFontSizeValue = document.getElementById('text-font-size-value');
-textFontSizeInput.addEventListener('input', (e) => {
-    textFontSizeValue.textContent = e.target.value + 'px';
-});
-
-// コマ割り適用
-document.getElementById('apply-panels').addEventListener('click', () => {
-    const rows = parseInt(document.getElementById('panel-rows').value);
-    const cols = parseInt(document.getElementById('panel-cols').value);
-    
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const margin = 20;
-    const usableWidth = canvas.width - (margin * (cols + 1));
-    const usableHeight = canvas.height - (margin * (rows + 1));
-    const panelWidth = usableWidth / cols;
-    const panelHeight = usableHeight / rows;
-    
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const x = margin + col * (panelWidth + margin);
-            const y = margin + row * (panelHeight + margin);
-            ctx.strokeRect(x, y, panelWidth, panelHeight);
-        }
-    }
-    
-    saveState();
-    panelsApplied = true;
-    
-    document.getElementById('step1-section').style.display = 'none';
-    document.getElementById('step2-section').style.display = 'flex';
-    document.getElementById('brush-size-section').style.display = 'flex';
-    document.getElementById('font-size-section').style.display = 'flex';
-    document.getElementById('history-section').style.display = 'flex';
-    document.getElementById('action-section').style.display = 'flex';
-});
-
-// 描画処理
-let lastX = 0;
-let lastY = 0;
-
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseout', stopDrawing);
-
-canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-// タッチ操作用の変数
-let touches = [];
-
-function handleTouchStart(e) {
-    if (e.touches.length >= 2) {
-        if (isDrawing) {
-            stopDrawing();
-        }
-        return;
-    }
-    
-    if (!panelsApplied) return;
-    
-    if (e.touches.length === 1) {
-        if (currentTool === 'text') {
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            showTextInput(mouseEvent);
-            e.preventDefault();
-            return;
-        }
-        
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousedown', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }
-}
-
-function handleTouchMove(e) {
-    if (e.touches.length >= 2) {
-        if (isDrawing) {
-            isDrawing = false;
-        }
-        return;
-    }
-    
-    if (e.touches.length === 1 && isDrawing) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent('mousemove', {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }
-}
-
-function handleTouchEnd(e) {
-    if (e.touches.length === 0 && isDrawing) {
-        const mouseEvent = new MouseEvent('mouseup', {});
-        canvas.dispatchEvent(mouseEvent);
-    }
-}
-
-function startDrawing(e) {
-    if (!panelsApplied) return;
-    
-    if (currentTool === 'text') {
-        showTextInput(e);
-        return;
-    }
-    
-    isDrawing = true;
-    const pos = getMousePos(e);
-    lastX = pos.x;
-    lastY = pos.y;
-}
-
-function draw(e) {
-    if (!isDrawing) return;
-    
-    e.preventDefault();
-    
-    const pos = getMousePos(e);
-    
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(pos.x, pos.y);
-    
-    if (currentTool === 'pencil') {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = brushSize;
-    } else if (currentTool === 'eraser') {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = brushSize * 2;
-    }
-    
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    lastX = pos.x;
-    lastY = pos.y;
-}
-
-function stopDrawing() {
-    if (isDrawing) {
-        isDrawing = false;
+// 選択オブジェクト削除
+function deleteSelected() {
+    const activeObjects = canvas.getActiveObjects();
+    if (activeObjects.length) {
+        activeObjects.forEach(obj => canvas.remove(obj));
+        canvas.discardActiveObject();
+        canvas.renderAll();
         saveState();
     }
 }
 
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
-}
-
-// テキスト入力
-let textClickPos = null;
-let editingTextBoxId = null;
-
-function showTextInput(e) {
-    textClickPos = getMousePos(e);
-    const textFontSize = parseInt(document.getElementById('text-font-size').value);
-    document.getElementById('text-font-size').value = fontSize;
-    document.getElementById('text-font-size-value').textContent = fontSize + 'px';
-    document.getElementById('text-input-overlay').style.display = 'flex';
-    document.getElementById('text-content').focus();
-}
-
-// テキストボックスを描画
-function renderTextBoxes() {
-    document.querySelectorAll('.text-box').forEach(el => el.remove());
-    
-    textBoxes.forEach(box => {
-        const textBoxEl = document.createElement('div');
-        textBoxEl.className = 'text-box';
-        textBoxEl.style.left = box.x + 'px';
-        textBoxEl.style.top = box.y + 'px';
-        textBoxEl.dataset.id = box.id;
-        
-        const contentEl = document.createElement('div');
-        contentEl.className = 'text-box-content';
-        contentEl.textContent = box.text;
-        contentEl.style.fontSize = box.fontSize + 'px';
-        
-        const controlsEl = document.createElement('div');
-        controlsEl.className = 'text-box-controls';
-        
-        const editBtn = document.createElement('div');
-        editBtn.className = 'text-box-btn';
-        editBtn.textContent = '✎';
-        editBtn.title = '編集';
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editTextBox(box.id);
-        });
-        
-        const deleteBtn = document.createElement('div');
-        deleteBtn.className = 'text-box-btn delete';
-        deleteBtn.textContent = '×';
-        deleteBtn.title = '削除';
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteTextBox(box.id);
-        });
-        
-        controlsEl.appendChild(editBtn);
-        controlsEl.appendChild(deleteBtn);
-        
-        const resizeHandle = document.createElement('div');
-        resizeHandle.className = 'text-box-resize';
-        
-        textBoxEl.appendChild(contentEl);
-        textBoxEl.appendChild(controlsEl);
-        textBoxEl.appendChild(resizeHandle);
-        
-        let tapTimeout;
-        textBoxEl.addEventListener('click', (e) => {
-            if (e.target === textBoxEl || e.target === contentEl) {
-                clearTimeout(tapTimeout);
-                tapTimeout = setTimeout(() => {
-                    editTextBox(box.id);
-                }, 300);
-            }
-        });
-        
-        // PC: マウスドラッグ
-        let isDragging = false;
-        let isResizing = false;
-        let startX, startY, startWidth, startHeight, startFontSize;
-        
-        textBoxEl.addEventListener('mousedown', (e) => {
-            if (e.target === resizeHandle) {
-                isResizing = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                startWidth = textBoxEl.offsetWidth;
-                startHeight = textBoxEl.offsetHeight;
-                startFontSize = box.fontSize;
-            } else if (e.target === textBoxEl || e.target === contentEl) {
-                isDragging = true;
-                startX = e.clientX - box.x;
-                startY = e.clientY - box.y;
-            }
-            e.stopPropagation();
-            e.preventDefault();
-        });
-        
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging && textBoxEl.dataset.id == box.id) {
-                box.x = e.clientX - startX;
-                box.y = e.clientY - startY;
-                textBoxEl.style.left = box.x + 'px';
-                textBoxEl.style.top = box.y + 'px';
-            } else if (isResizing && textBoxEl.dataset.id == box.id) {
-                const deltaX = e.clientX - startX;
-                const scale = 1 + (deltaX / startWidth);
-                box.fontSize = Math.max(12, Math.min(60, Math.round(startFontSize * scale)));
-                contentEl.style.fontSize = box.fontSize + 'px';
-            }
-        });
-        
-        document.addEventListener('mouseup', () => {
-            if (isDragging || isResizing) {
-                isDragging = false;
-                isResizing = false;
-                saveState();
-            }
-        });
-        
-        // スマホ: タッチドラッグ
-        let touchStartX, touchStartY;
-        let isTouchDragging = false;
-        let isTouchResizing = false;
-        
-        textBoxEl.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            
-            if (e.target === resizeHandle) {
-                isTouchResizing = true;
-                touchStartX = touch.clientX;
-                touchStartY = touch.clientY;
-                startWidth = textBoxEl.offsetWidth;
-                startFontSize = box.fontSize;
-                e.preventDefault();
-            } else if (e.target === textBoxEl || e.target === contentEl) {
-                isTouchDragging = true;
-                touchStartX = touch.clientX - box.x;
-                touchStartY = touch.clientY - box.y;
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
-        textBoxEl.addEventListener('touchmove', (e) => {
-            if (isTouchDragging && textBoxEl.dataset.id == box.id) {
-                const touch = e.touches[0];
-                box.x = touch.clientX - touchStartX;
-                box.y = touch.clientY - touchStartY;
-                textBoxEl.style.left = box.x + 'px';
-                textBoxEl.style.top = box.y + 'px';
-                e.preventDefault();
-            } else if (isTouchResizing && textBoxEl.dataset.id == box.id) {
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - touchStartX;
-                const scale = 1 + (deltaX / startWidth);
-                box.fontSize = Math.max(12, Math.min(60, Math.round(startFontSize * scale)));
-                contentEl.style.fontSize = box.fontSize + 'px';
-                e.preventDefault();
-            }
-        }, { passive: false });
-        
-        textBoxEl.addEventListener('touchend', (e) => {
-            if (isTouchDragging || isTouchResizing) {
-                isTouchDragging = false;
-                isTouchResizing = false;
-                saveState();
-            }
-        });
-        
-        canvasContainer.appendChild(textBoxEl);
-    });
-}
-
-function editTextBox(id) {
-    const box = textBoxes.find(b => b.id === id);
-    if (!box) return;
-    
-    editingTextBoxId = id;
-    document.getElementById('text-content').value = box.text;
-    document.getElementById('text-font-size').value = box.fontSize;
-    document.getElementById('text-font-size-value').textContent = box.fontSize + 'px';
-    document.getElementById('text-input-overlay').style.display = 'flex';
-    document.getElementById('text-content').focus();
-}
-
-function deleteTextBox(id) {
-    textBoxes = textBoxes.filter(b => b.id !== id);
-    renderTextBoxes();
-    saveState();
-}
-
-document.getElementById('text-ok').addEventListener('click', () => {
-    const text = document.getElementById('text-content').value.trim();
-    const textFontSize = parseInt(document.getElementById('text-font-size').value);
-    
-    if (text) {
-        if (editingTextBoxId !== null) {
-            const box = textBoxes.find(b => b.id === editingTextBoxId);
-            if (box) {
-                box.text = text;
-                box.fontSize = textFontSize;
-            }
-        } else if (textClickPos) {
-            textBoxes.push({
-                id: textBoxIdCounter++,
-                text: text,
-                x: textClickPos.x,
-                y: textClickPos.y,
-                fontSize: textFontSize
-            });
-        }
-        renderTextBoxes();
-        saveState();
-    }
-    closeTextInput();
-});
-
-document.getElementById('text-cancel').addEventListener('click', closeTextInput);
-
-function closeTextInput() {
-    document.getElementById('text-input-overlay').style.display = 'none';
-    document.getElementById('text-content').value = '';
-    textClickPos = null;
-    editingTextBoxId = null;
-}
-
-// クリア
-document.getElementById('clear-canvas').addEventListener('click', () => {
+// キャンバスクリア
+function clearCanvas() {
     if (confirm('本当にクリアしますか？')) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        textBoxes = [];
+        canvas.clear();
+        canvas.backgroundColor = '#ffffff';
         history = [];
         historyStep = -1;
         updatePanelPreview();
-        renderTextBoxes();
         panelsApplied = false;
         document.getElementById('step1-section').style.display = 'flex';
         document.getElementById('step2-section').style.display = 'none';
-        document.getElementById('brush-size-section').style.display = 'none';
-        document.getElementById('font-size-section').style.display = 'none';
+        document.getElementById('brush-section').style.display = 'none';
         document.getElementById('history-section').style.display = 'none';
         document.getElementById('action-section').style.display = 'none';
     }
-});
+}
 
-// 保存（テキストボックスをキャンバスに描画してから保存）
-document.getElementById('save-image').addEventListener('click', () => {
-    textBoxes.forEach(box => {
-        ctx.fillStyle = '#000';
-        ctx.font = `${box.fontSize}px sans-serif`;
-        ctx.fillText(box.text, box.x, box.y + box.fontSize);
-    });
+// 保存
+function saveImage() {
+    // キャンバスの状態を保存
+    const canvasData = JSON.stringify(canvas.toJSON());
+    sessionStorage.setItem('mangaDrawing', canvasData);
     
-    canvas.toBlob((blob) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            sessionStorage.setItem('mangaDrawing', reader.result);
-            const parentId = document.body.dataset.parentId;
-            const mangaId = document.body.dataset.mangaId;
-            
-            if (parentId) {
-                window.location.href = `/page/${parentId}/continue/?edit=1`;
-            } else {
-                window.location.href = `/${mangaId}/create/?edit=1`;
-            }
-        };
-        reader.readAsDataURL(blob);
-    });
-});
+    // PNG画像として保存
+    const dataURL = canvas.toDataURL('image/png');
+    sessionStorage.setItem('mangaDrawingImage', dataURL);
+    
+    const parentId = document.body.dataset.parentId;
+    const mangaId = document.body.dataset.mangaId;
+    
+    if (parentId) {
+        window.location.href = `/page/${parentId}/continue/?edit=1`;
+    } else {
+        window.location.href = `/${mangaId}/create/?edit=1`;
+    }
+}
 
-// 戻るボタン
-document.getElementById('back-btn').addEventListener('click', () => {
+// 戻る
+function goBack() {
     if (confirm('本当に戻りますか？現在の内容は破棄されます。')) {
         const parentId = document.body.dataset.parentId;
         const mangaId = document.body.dataset.mangaId;
@@ -621,4 +454,4 @@ document.getElementById('back-btn').addEventListener('click', () => {
             window.location.href = `/${mangaId}/create/`;
         }
     }
-});
+}
