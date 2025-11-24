@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}マイページ{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold mb-8 text-center">マイページ</h2>
+    
+    <!-- タブナビゲーション -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="showTab('my-pages')" id="tab-my-pages" class="tab-button active border-b-2 py-4 px-1 text-center border-blue-500 font-medium text-blue-600">
+                    描いたページ
+                </button>
+                <button onclick="showTab('batons')" id="tab-batons" class="tab-button border-b-2 py-4 px-1 text-center border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    受け取ったバトン
+                    {% if received_batons %}
+                        <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">{{ received_batons|length }}</span>
+                    {% endif %}
+                </button>
+                <button onclick="showTab('settings')" id="tab-settings" class="tab-button border-b-2 py-4 px-1 text-center border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    設定
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 描いたページ一覧 -->
+    <div id="content-my-pages" class="tab-content">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">あなたが描いたページ</h3>
+            
+            {% if my_pages %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for page in my_pages %}
+                        <a href="{% url 'page_viewer' page.id %}" class="block bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
+                            <div class="aspect-square bg-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="{{ page.image.url }}" alt="{{ page.display_title }}" class="object-cover w-full h-full">
+                            </div>
+                            <div class="p-3">
+                                <p class="font-semibold text-gray-900">{{ page.display_title }}</p>
+                                <p class="text-sm text-gray-600">{{ page.manga.title }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ page.created_at|date:"Y/m/d H:i" }}</p>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-center py-8">まだページを描いていません</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 受け取ったバトン一覧 -->
+    <div id="content-batons" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">受け取ったバトン</h3>
+            
+            {% if received_batons %}
+                <div class="space-y-4">
+                    {% for baton in received_batons %}
+                        <div class="border rounded-lg p-4 hover:bg-gray-50 transition">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-900">
+                                        「{{ baton.page.manga.title }}」- {{ baton.page.display_title }}
+                                    </p>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        <span class="font-medium">{{ baton.from_user.username }}</span> さんからのバトン
+                                    </p>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        {{ baton.created_at|date:"Y/m/d H:i" }}
+                                    </p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <a href="{% url 'page_viewer' baton.page.id %}" 
+                                       class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition text-sm">
+                                        表示
+                                    </a>
+                                    <a href="{% url 'continue_page' baton.page.id %}" 
+                                       class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm">
+                                        続きを描く
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-center py-8">受け取ったバトンはありません</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 設定 -->
+    <div id="content-settings" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">アカウント設定</h3>
+            
+            <form method="post" class="max-w-md">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-2">
+                        メールアドレスを登録すると、バトンを受け取った際に通知メールが届きます
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    {{ profile_form.email.label_tag }}
+                    {{ profile_form.email }}
+                    {% if profile_form.email.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ profile_form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition font-semibold">
+                    保存
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // すべてのタブコンテンツを非表示
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+    });
+    
+    // すべてのタブボタンを非アクティブ化
+    document.querySelectorAll('.tab-button').forEach(el => {
+        el.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // 選択されたタブを表示
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    
+    // 選択されたタブボタンをアクティブ化
+    const activeButton = document.getElementById('tab-' + tabName);
+    activeButton.classList.remove('border-transparent', 'text-gray-500');
+    activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+}
+</script>
+
+<style>
+.tab-button {
+    transition: all 0.2s;
+}
+</style>
+{% endblock %}

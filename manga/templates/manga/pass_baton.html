@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}バトンをパス{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+    <h2 class="text-2xl font-bold text-center mb-6">バトンをパス</h2>
+    
+    <!-- 現在のページ情報 -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 class="font-semibold text-gray-700 mb-2">対象ページ</h3>
+        <div class="flex items-center gap-4">
+            <div class="w-24 h-24 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                <img src="{{ page.image.url }}" alt="{{ page.display_title }}" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <p class="font-semibold">{{ page.manga.title }}</p>
+                <p class="text-gray-600">{{ page.display_title }}</p>
+                <p class="text-sm text-gray-500">by {{ page.author.username }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- バトンパスフォーム -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <div>
+            <label for="{{ form.to_user.id_for_label }}" class="block font-semibold mb-2 text-gray-700">
+                {{ form.to_user.label }}
+            </label>
+            {{ form.to_user }}
+            {% if form.to_user.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.to_user.errors.0 }}</p>
+            {% endif %}
+            <p class="text-sm text-gray-600 mt-2">
+                バトンを渡したいユーザーの名前を入力してください
+            </p>
+        </div>
+        
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h4 class="font-semibold text-blue-900 mb-2">💡 バトンパスとは？</h4>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• 特定のユーザーに「このページの続きを描いてほしい」とリクエストできる機能です</li>
+                <li>• 相手がメールアドレスを登録していれば、通知が届きます</li>
+                <li>• 相手が続きのページを追加すると、バトンは自動的に完了します</li>
+            </ul>
+        </div>
+        
+        <div class="flex gap-3">
+            <button type="submit" 
+                    class="flex-1 bg-green-500 text-white py-3 rounded font-semibold hover:bg-green-600 transition">
+                バトンを渡す
+            </button>
+            <a href="{% url 'page_viewer' page.id %}" 
+               class="flex-1 bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition text-center">
+                キャンセル
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

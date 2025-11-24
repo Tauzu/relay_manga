@@ -26,6 +26,12 @@
                 <!-- PCでのみ表示される挨拶 -->
                 <span class="hidden sm:inline text-gray-700">こんにちは、{{ user.username }} さん！</span>
 
+                <!-- マイページボタン -->
+                <a href="{% url 'my_page' %}"
+                   class="px-3 py-2 sm:px-4 sm:py-2 rounded bg-purple-500 text-white text-sm sm:text-base hover:bg-purple-600 transition">
+                    マイページ
+                </a>
+
                 <!-- ログアウトボタン -->
                 <form action="{% url 'logout' %}" method="post" class="inline">
                     {% csrf_token %}

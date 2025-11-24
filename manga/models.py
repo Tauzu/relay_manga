@@ -5,7 +5,6 @@ from cloudinary.models import CloudinaryField
 class Manga(models.Model):
     title = models.CharField(max_length=100)
     
-    # CloudinaryFieldに変更
     cover_image = CloudinaryField(
         'image',
         blank=True,
@@ -32,7 +31,6 @@ class Page(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, blank=True, default="")
     
-    # CloudinaryFieldに変更
     image = CloudinaryField(
         'image',
         folder='pages',
@@ -63,7 +61,6 @@ class Page(models.Model):
     def thumbnail(self):
         """サムネイル用のURL生成"""
         if self.image:
-            # Cloudinaryの変換パラメータでサムネイル生成
             return type('obj', (object,), {
                 'url': self.image.build_url(width=100, height=100, crop='fill')
             })
@@ -85,3 +82,27 @@ class Page(models.Model):
         for child in self.children.all():
             total += 1 + child.get_priority()
         return total
+
+
+class UserProfile(models.Model):
+    """ユーザープロフィール（メールアドレス保存用）"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    email = models.EmailField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.user.username}'s profile"
+
+
+class Baton(models.Model):
+    """バトンパスの管理"""
+    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name='batons')
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_batons')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_batons')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_completed = models.BooleanField(default=False)  # ページ追加で完了
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Baton from {self.from_user.username} to {self.to_user.username} for {self.page.display_title}"

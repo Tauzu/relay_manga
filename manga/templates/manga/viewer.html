@@ -47,7 +47,7 @@
         aspect-ratio: 1 / 1;
         width: 100%;
         height: auto;
-        max-width: 500px;   /* PCでは画像エリアを少し小さく */
+        max-width: 500px;
         max-height: 500px;
         object-fit: contain;
         border-radius: 0.5rem;
@@ -237,8 +237,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/css/splide.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/js/splide.min.js"></script>
 
-    <!-- ❤️ うぃーねボタン + 続きを描く -->
-    <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0">
+    <!-- ❤️ うぃーねボタン + 続きを描く + バトンパス -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0 flex-wrap">
         <form id="like-form" method="post" class="w-full sm:w-auto text-center">
             {% csrf_token %}
             <button type="submit" id="like-button"
@@ -255,9 +255,7 @@
         <a id="share-x-button"
            href="#"
            class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-black text-white rounded-lg font-semibold text-lg hover:bg-gray-800 transition">
-
             <img src="{% static 'x-logo/logo.svg' %}" class="w-6 h-6" alt="X">
-
             共有
         </a>
 
@@ -269,6 +267,14 @@
             </svg>
             続きを投稿
         </a>
+
+        <!-- バトンパスボタン（ログイン時のみ表示） -->
+        {% if user.is_authenticated %}
+        <a href="{% url 'pass_baton' first_page.id %}"
+           class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-lg font-semibold text-lg hover:bg-orange-600 transition">
+            🏃 バトンをパス
+        </a>
+        {% endif %}
     </div>
 </div>
 
