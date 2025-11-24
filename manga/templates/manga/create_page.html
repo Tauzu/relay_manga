@@ -91,12 +91,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const isNewPage = !urlParams.has('edit');
 
     // おえかきから戻ってきた場合（editパラメータがある場合のみ）
-    const savedDrawing = sessionStorage.getItem('mangaDrawing');
-    if (savedDrawing && !isNewPage) {
-        dropInner.innerHTML = `<img src="${savedDrawing}" class="object-contain w-full h-full" alt="おえかき画像">`;
+    const savedDrawingImage = sessionStorage.getItem('mangaDrawingImage');
+    if (savedDrawingImage && !isNewPage) {
+        dropInner.innerHTML = `<img src="${savedDrawingImage}" class="object-contain w-full h-full" alt="おえかき画像">`;
         
         // base64をBlobに変換してFileInputに設定
-        fetch(savedDrawing)
+        fetch(savedDrawingImage)
             .then(res => res.blob())
             .then(blob => {
                 const file = new File([blob], "manga-drawing.png", { type: "image/png" });
@@ -108,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         // 新規ページの場合はsessionStorageをクリア
         sessionStorage.removeItem('mangaDrawing');
+        sessionStorage.removeItem('mangaDrawingImage');
     }
 
     // おえかきボタン：画像がある場合は再編集モードで遷移
@@ -119,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             // 新規作成の場合はsessionStorageをクリア
             sessionStorage.removeItem('mangaDrawing');
+            sessionStorage.removeItem('mangaDrawingImage');
         }
     });
 
@@ -152,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
             showPreview(file);
             hasDrawing = false;
             sessionStorage.removeItem('mangaDrawing');
+            sessionStorage.removeItem('mangaDrawingImage');
         }
     });
     
@@ -161,6 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
             showPreview(file);
             hasDrawing = false;
             sessionStorage.removeItem('mangaDrawing');
+            sessionStorage.removeItem('mangaDrawingImage');
         }
     });
 
