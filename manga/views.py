@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import Manga, Page, Baton, UserProfile
-from .forms import MangaForm, PageForm, SignupWithEmailForm, UserProfileForm, BatonPassForm
+from .forms import MangaForm, PageForm, SignupWithEmailForm, UserProfileForm, BatonPassForm, UsernameChangeForm
 import json
 
 
