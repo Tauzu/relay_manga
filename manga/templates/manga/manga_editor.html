@@ -14,6 +14,13 @@
 </head>
 <body data-parent-id="{% if parent %}{{ parent.id }}{% endif %}" data-manga-id="{{ manga.id }}">
 
+<!-- ツールバー切替ボタン -->
+<button id="toolbar-toggle" class="toolbar-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+</button>
+
 <div class="editor-container">
     <!-- ツールバー -->
     <div class="toolbar">
@@ -81,8 +88,18 @@
     
     <!-- キャンバス -->
     <div class="canvas-wrapper">
-        <canvas id="manga-canvas"></canvas>
+        <div class="canvas-container">
+            <canvas id="manga-canvas"></canvas>
+        </div>
     </div>
+</div>
+
+<!-- ズームコントロール -->
+<div class="zoom-controls">
+    <button id="zoom-in" class="zoom-btn" title="ズームイン">+</button>
+    <div class="zoom-level">100%</div>
+    <button id="zoom-out" class="zoom-btn" title="ズームアウト">−</button>
+    <button id="zoom-reset" class="zoom-btn" title="リセット">⊙</button>
 </div>
 
 <!-- テキスト入力オーバーレイ -->
