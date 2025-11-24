@@ -14,7 +14,7 @@ let panStartY = 0;
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 10;
-const ZOOM_SPEED = 0.1;
+const ZOOM_SPEED = 0.05;
 
 // URLパラメータで再編集モードかどうかを判定
 const urlParams = new URLSearchParams(window.location.search);
@@ -124,13 +124,15 @@ function setupZoomAndPan() {
     let touchCenterY = 0;
     
     wrapper.addEventListener('touchstart', function(e) {
-        // 描画モード以外、または選択ツールの場合のみズーム・パン可能
-        if (currentTool !== 'select' && (currentTool === 'pencil' || currentTool === 'eraser')) {
-            return;
-        }
-        
         if (e.touches.length === 2) {
+            // 2本指の場合は常にズーム・パン可能（描画モードでも）
             e.preventDefault();
+            
+            // 描画モードの場合は一時的に無効化
+            const wasDrawingMode = canvas.isDrawingMode;
+            if (wasDrawingMode) {
+                canvas.isDrawingMode = false;
+            }
             
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
@@ -146,20 +148,12 @@ function setupZoomAndPan() {
             touchStartScale = scale;
             touchStartTranslateX = translateX;
             touchStartTranslateY = translateY;
-        } else if (e.touches.length === 1 && currentTool === 'select') {
-            // 1本指パン（選択ツール時のみ）
-            isPanning = true;
-            panStartX = e.touches[0].clientX - translateX;
-            panStartY = e.touches[0].clientY - translateY;
         }
     }, { passive: false });
     
     wrapper.addEventListener('touchmove', function(e) {
-        if (currentTool !== 'select' && (currentTool === 'pencil' || currentTool === 'eraser')) {
-            return;
-        }
-        
         if (e.touches.length === 2) {
+            // 2本指操作は常に有効
             e.preventDefault();
             
             const touch1 = e.touches[0];
@@ -182,22 +176,21 @@ function setupZoomAndPan() {
             translateY = touchStartTranslateY + (currentCenterY - touchCenterY);
             
             updateCanvasTransform();
-        } else if (e.touches.length === 1 && isPanning) {
-            e.preventDefault();
-            
-            translateX = e.touches[0].clientX - panStartX;
-            translateY = e.touches[0].clientY - panStartY;
-            
-            updateCanvasTransform();
         }
     }, { passive: false });
     
     wrapper.addEventListener('touchend', function(e) {
         if (e.touches.length < 2) {
             touchStartDistance = 0;
-        }
-        if (e.touches.length === 0) {
-            isPanning = false;
+            
+            // 描画モードに戻す必要がある場合
+            if (currentTool === 'pencil' || currentTool === 'eraser') {
+                setTimeout(() => {
+                    if (e.touches.length === 0) {
+                        canvas.isDrawingMode = true;
+                    }
+                }, 50);
+            }
         }
     });
     
@@ -250,12 +243,12 @@ function setupZoomAndPan() {
     
     // ズームボタン
     document.getElementById('zoom-in').addEventListener('click', function() {
-        scale = Math.min(MAX_SCALE, scale + 0.2);
+        scale = Math.min(MAX_SCALE, scale + 0.1);
         updateCanvasTransform();
     });
     
     document.getElementById('zoom-out').addEventListener('click', function() {
-        scale = Math.max(MIN_SCALE, scale - 0.2);
+        scale = Math.max(MIN_SCALE, scale - 0.1);
         updateCanvasTransform();
     });
     
