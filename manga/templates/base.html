@@ -28,18 +28,9 @@
 
                 <!-- マイページボタン -->
                 <a href="{% url 'my_page' %}"
-                   class="px-3 py-2 sm:px-4 sm:py-2 rounded bg-purple-500 text-white text-sm sm:text-base hover:bg-purple-600 transition">
+                    class="px-3 py-2 sm:px-4 sm:py-2 rounded bg-white border border-black text-black text-sm sm:text-base hover:bg-gray-100 transition">
                     マイページ
                 </a>
-
-                <!-- ログアウトボタン -->
-                <form action="{% url 'logout' %}" method="post" class="inline">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="px-3 py-2 sm:px-4 sm:py-2 rounded bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition">
-                        ログアウト
-                    </button>
-                </form>
             {% else %}
                 <!-- ログインボタン -->
                 <a href="{% url 'login' %}"

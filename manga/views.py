@@ -323,18 +323,34 @@ def my_page(request):
     # プロフィールフォーム
     profile, created = UserProfile.objects.get_or_create(user=user)
     
+    # ユーザー名変更フォーム
+    username_form = UsernameChangeForm(user=user)
+    
     if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            return redirect('my_page')
+        action = request.POST.get('action')
+        
+        if action == 'update_profile':
+            form = UserProfileForm(request.POST, instance=profile)
+            if form.is_valid():
+                form.save()
+                return redirect('my_page')
+        
+        elif action == 'change_username':
+            username_form = UsernameChangeForm(request.POST, user=user)
+            if username_form.is_valid():
+                user.username = username_form.cleaned_data['new_username']
+                user.save()
+                return redirect('my_page')
+        
+        profile_form = UserProfileForm(instance=profile)
     else:
-        form = UserProfileForm(instance=profile)
+        profile_form = UserProfileForm(instance=profile)
     
     return render(request, 'manga/my_page.html', {
         'my_pages': my_pages,
         'received_batons': received_batons,
-        'profile_form': form,
+        'profile_form': profile_form,
+        'username_form': username_form,
     })
 
 
