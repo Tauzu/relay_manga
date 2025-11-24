@@ -1,187 +1,86 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
     <title>マンガをえがく</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { 
-            overflow: hidden;
-            margin: 0;
-            padding: 0;
-        }
-        .editor-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background: #f5f5f5;
-        }
-        
-        .toolbar {
-            background: white;
-            border-bottom: 2px solid #ddd;
-            padding: 0.75rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
-            flex-shrink: 0;
-        }
-        
-        .tool-section {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            padding: 0.25rem 0.5rem;
-            border-right: 1px solid #ddd;
-        }
-        
-        .tool-section:last-child { border-right: none; }
-        
-        .tool-btn {
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #ccc;
-            background: white;
-            cursor: pointer;
-            border-radius: 0.25rem;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        
-        .tool-btn:hover { background: #f0f0f0; }
-        .tool-btn.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #2563eb;
-        }
-        
-        .tool-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-            border-color: #2563eb;
-        }
-        
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        
-        .btn-success {
-            background: #10b981;
-            color: white;
-            border-color: #059669;
-        }
-        
-        .btn-success:hover {
-            background: #059669;
-        }
-        
-        .spacer {
-            flex: 1;
-        }
-        
-        .canvas-wrapper {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            overflow: auto;
-            min-height: 0;
-        }
-        
-        #manga-canvas {
-            background: white;
-            border: 2px solid #333;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: crosshair;
-            max-width: 100%;
-            max-height: 100%;
-            height: auto;
-            width: auto;
-            touch-action: none;
-        }
-        
-        .text-input-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        
-        .text-input-box {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-        
-        @media (max-width: 640px) {
-            .toolbar { padding: 0.5rem; gap: 0.5rem; }
-            .tool-btn { padding: 0.4rem 0.6rem; font-size: 0.875rem; }
-            .canvas-wrapper { padding: 0.5rem; }
-        }
-    </style>
+    
+    <!-- Fabric.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    
+    <link rel="stylesheet" href="{% static 'manga/manga_editor.css' %}">
 </head>
-<body>
+<body data-parent-id="{% if parent %}{{ parent.id }}{% endif %}" data-manga-id="{{ manga.id }}">
+
+<!-- ツールバー切替ボタン -->
+<button id="toolbar-toggle" class="toolbar-toggle">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+</button>
 
 <div class="editor-container">
     <!-- ツールバー -->
     <div class="toolbar">
         <!-- ステップ1: コマ割り選択 -->
         <div class="tool-section" id="step1-section">
-            <label class="font-semibold">コマ割り:</label>
-            <select id="panel-rows" class="border rounded px-2 py-1">
+            <label class="font-semibold text-sm">コマ割り:</label>
+            <select id="panel-rows" class="border rounded px-2 py-1 text-sm">
                 <option value="1" selected>1段</option>
                 <option value="2">2段</option>
                 <option value="3">3段</option>
+                <option value="4">4段</option>
             </select>
             <span>×</span>
-            <select id="panel-cols" class="border rounded px-2 py-1">
+            <select id="panel-cols" class="border rounded px-2 py-1 text-sm">
                 <option value="1" selected>1列</option>
                 <option value="2">2列</option>
                 <option value="3">3列</option>
+                <option value="4">4列</option>
             </select>
             <button id="apply-panels" class="tool-btn btn-primary">決定</button>
         </div>
         
         <!-- ステップ2: 描画ツール -->
         <div class="tool-section" id="step2-section" style="display: none;">
-            <button id="tool-pencil" class="tool-btn active">✏️ 鉛筆</button>
-            <button id="tool-eraser" class="tool-btn">🧹 消しゴム</button>
-            <button id="tool-text" class="tool-btn">📝 テキスト</button>
+            <button id="tool-select" class="tool-btn active" title="選択ツール">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+            </button>
+            <button id="tool-pencil" class="tool-btn" title="鉛筆">✏️</button>
+            <button id="tool-eraser" class="tool-btn" title="消しゴム">🧹</button>
+            <button id="tool-text" class="tool-btn" title="テキスト">📝</button>
+            <button id="tool-rect" class="tool-btn" title="長方形">▭</button>
+            <button id="tool-circle" class="tool-btn" title="円">○</button>
         </div>
         
-        <div class="tool-section" id="brush-size-section" style="display: none;">
-            <label class="text-sm">太さ:</label>
-            <input id="brush-size" type="range" min="1" max="20" value="3" class="w-20">
-            <span id="brush-size-value" class="text-sm">3</span>
+        <!-- ブラシ設定 -->
+        <div class="tool-section" id="brush-section" style="display: none;">
+            <label class="text-xs sm:text-sm">太さ:</label>
+            <input id="brush-size" type="range" min="1" max="50" value="3" class="w-16 sm:w-20">
+            <span id="brush-size-value" class="text-xs sm:text-sm">3</span>
         </div>
         
+        <!-- 履歴操作 -->
         <div class="tool-section" id="history-section" style="display: none;">
-            <button id="undo-btn" class="tool-btn" disabled>↶ Undo</button>
-            <button id="redo-btn" class="tool-btn" disabled>↷ Redo</button>
+            <button id="undo-btn" class="tool-btn" disabled title="元に戻す">↶</button>
+            <button id="redo-btn" class="tool-btn" disabled title="やり直す">↷</button>
+            <button id="delete-selected" class="tool-btn btn-danger" title="選択を削除">🗑️</button>
         </div>
         
+        <!-- アクション -->
         <div class="tool-section" id="action-section" style="display: none;">
-            <button id="clear-canvas" class="tool-btn">🗑️ クリア</button>
+            <button id="clear-canvas" class="tool-btn">クリア</button>
             <button id="save-image" class="tool-btn btn-success">✅ 完成</button>
         </div>
         
         <!-- スペーサー -->
         <div class="spacer"></div>
         
+        <!-- 戻るボタン -->
         <div class="tool-section">
             <button id="back-btn" class="tool-btn">← 戻る</button>
         </div>
@@ -189,8 +88,18 @@
     
     <!-- キャンバス -->
     <div class="canvas-wrapper">
-        <canvas id="manga-canvas" width="800" height="800"></canvas>
+        <div class="canvas-container">
+            <canvas id="manga-canvas"></canvas>
+        </div>
     </div>
+</div>
+
+<!-- ズームコントロール -->
+<div class="zoom-controls">
+    <button id="zoom-in" class="zoom-btn" title="ズームイン">+</button>
+    <div class="zoom-level">100%</div>
+    <button id="zoom-out" class="zoom-btn" title="ズームアウト">−</button>
+    <button id="zoom-reset" class="zoom-btn" title="リセット">⊙</button>
 </div>
 
 <!-- テキスト入力オーバーレイ -->
@@ -198,364 +107,32 @@
     <div class="text-input-box">
         <h3 class="text-lg font-bold mb-3">テキストを入力</h3>
         <textarea id="text-content" class="w-full border rounded p-2 mb-3" rows="3" 
-                  placeholder="セリフを入力してください"></textarea>
+                  placeholder="テキストを入力してください"></textarea>
+        
+        <div class="mb-3">
+            <label class="text-sm font-semibold">フォントサイズ:</label>
+            <input id="text-font-size" type="range" min="12" max="80" value="20" class="w-full">
+            <span id="text-font-size-value" class="text-sm">20px</span>
+        </div>
+        
+        <!-- 隠しフィールド（クリック位置を保存） -->
+        <input type="hidden" id="text-click-x">
+        <input type="hidden" id="text-click-y">
+        
         <div class="flex gap-2 justify-end">
-            <button id="text-cancel" class="px-4 py-2 border rounded">キャンセル</button>
-            <button id="text-ok" class="px-4 py-2 bg-blue-500 text-white rounded">OK</button>
+            <button id="text-cancel" class="px-4 py-2 border rounded hover:bg-gray-100">キャンセル</button>
+            <button id="text-ok" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">OK</button>
         </div>
     </div>
 </div>
 
+<!-- フォントサイズ表示の更新 -->
 <script>
-const canvas = document.getElementById('manga-canvas');
-const ctx = canvas.getContext('2d');
-let isDrawing = false;
-let currentTool = 'pencil';
-let brushSize = 3;
-let panelsApplied = false;
-
-// Undo/Redo用の履歴
-let history = [];
-let historyStep = -1;
-
-// 初期化: キャンバスを白で塗りつぶし
-ctx.fillStyle = 'white';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// URLパラメータで再編集モードかどうかを判定
-const urlParams = new URLSearchParams(window.location.search);
-const isEditMode = urlParams.has('edit');
-
-// 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
-const savedDrawing = sessionStorage.getItem('mangaDrawing');
-if (savedDrawing && isEditMode) {
-    const img = new Image();
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-        // コマ割りが適用された状態として扱う
-        panelsApplied = true;
-        document.getElementById('step1-section').style.display = 'none';
-        document.getElementById('step2-section').style.display = 'flex';
-        document.getElementById('brush-size-section').style.display = 'flex';
-        document.getElementById('history-section').style.display = 'flex';
-        document.getElementById('action-section').style.display = 'flex';
-        // 初期状態を履歴に保存
-        saveState();
-    };
-    img.src = savedDrawing;
-} else {
-    // 新規作成の場合はsessionStorageをクリアして初期プレビュー表示
-    if (!isEditMode) {
-        sessionStorage.removeItem('mangaDrawing');
-    }
-    updatePanelPreview();
-}
-
-// 履歴を保存
-function saveState() {
-    historyStep++;
-    if (historyStep < history.length) {
-        history.length = historyStep;
-    }
-    history.push(canvas.toDataURL());
-    updateHistoryButtons();
-}
-
-// 履歴ボタンの有効/無効を更新
-function updateHistoryButtons() {
-    document.getElementById('undo-btn').disabled = historyStep <= 0;
-    document.getElementById('redo-btn').disabled = historyStep >= history.length - 1;
-}
-
-// Undo
-document.getElementById('undo-btn').addEventListener('click', () => {
-    if (historyStep > 0) {
-        historyStep--;
-        const img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            updateHistoryButtons();
-        };
-        img.src = history[historyStep];
-    }
-});
-
-// Redo
-document.getElementById('redo-btn').addEventListener('click', () => {
-    if (historyStep < history.length - 1) {
-        historyStep++;
-        const img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-            updateHistoryButtons();
-        };
-        img.src = history[historyStep];
-    }
-});
-
-// コマ割りプレビュー（段数・列数変更時）
-function updatePanelPreview() {
-    const rows = parseInt(document.getElementById('panel-rows').value);
-    const cols = parseInt(document.getElementById('panel-cols').value);
-    
-    // キャンバスクリア
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // コマ割り線を描画（余白を追加）
-    const margin = 20;
-    const usableWidth = canvas.width - (margin * (cols + 1));
-    const usableHeight = canvas.height - (margin * (rows + 1));
-    const panelWidth = usableWidth / cols;
-    const panelHeight = usableHeight / rows;
-    
-    ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 2;
-    
-    // コマの枠を描画（プレビューは薄いグレー）
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const x = margin + col * (panelWidth + margin);
-            const y = margin + row * (panelHeight + margin);
-            
-            ctx.strokeRect(x, y, panelWidth, panelHeight);
-        }
-    }
-}
-
-// 段数・列数変更時にプレビュー更新
-document.getElementById('panel-rows').addEventListener('change', updatePanelPreview);
-document.getElementById('panel-cols').addEventListener('change', updatePanelPreview);
-
-// ツール切り替え
-document.getElementById('tool-pencil').addEventListener('click', () => {
-    currentTool = 'pencil';
-    updateToolButtons();
-});
-
-document.getElementById('tool-eraser').addEventListener('click', () => {
-    currentTool = 'eraser';
-    updateToolButtons();
-});
-
-document.getElementById('tool-text').addEventListener('click', () => {
-    currentTool = 'text';
-    updateToolButtons();
-});
-
-function updateToolButtons() {
-    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-    if (currentTool === 'pencil') document.getElementById('tool-pencil').classList.add('active');
-    if (currentTool === 'eraser') document.getElementById('tool-eraser').classList.add('active');
-    if (currentTool === 'text') document.getElementById('tool-text').classList.add('active');
-}
-
-// ブラシサイズ
-const brushSizeInput = document.getElementById('brush-size');
-const brushSizeValue = document.getElementById('brush-size-value');
-brushSizeInput.addEventListener('input', (e) => {
-    brushSize = parseInt(e.target.value);
-    brushSizeValue.textContent = brushSize;
-});
-
-// コマ割り適用
-document.getElementById('apply-panels').addEventListener('click', () => {
-    const rows = parseInt(document.getElementById('panel-rows').value);
-    const cols = parseInt(document.getElementById('panel-cols').value);
-    
-    // キャンバスクリア
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // コマ割り線を描画（余白を追加）
-    const margin = 20;
-    const usableWidth = canvas.width - (margin * (cols + 1));
-    const usableHeight = canvas.height - (margin * (rows + 1));
-    const panelWidth = usableWidth / cols;
-    const panelHeight = usableHeight / rows;
-    
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    
-    // コマの枠を描画
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            const x = margin + col * (panelWidth + margin);
-            const y = margin + row * (panelHeight + margin);
-            
-            ctx.strokeRect(x, y, panelWidth, panelHeight);
-        }
-    }
-    
-    // 初期状態を履歴に保存
-    saveState();
-    
-    panelsApplied = true;
-    
-    // ステップ2のツールを表示
-    document.getElementById('step1-section').style.display = 'none';
-    document.getElementById('step2-section').style.display = 'flex';
-    document.getElementById('brush-size-section').style.display = 'flex';
-    document.getElementById('history-section').style.display = 'flex';
-    document.getElementById('action-section').style.display = 'flex';
-});
-
-// 描画処理
-let lastX = 0;
-let lastY = 0;
-
-canvas.addEventListener('mousedown', startDrawing);
-canvas.addEventListener('mousemove', draw);
-canvas.addEventListener('mouseup', stopDrawing);
-canvas.addEventListener('mouseout', stopDrawing);
-
-canvas.addEventListener('touchstart', handleTouch);
-canvas.addEventListener('touchmove', handleTouch);
-canvas.addEventListener('touchend', stopDrawing);
-
-function startDrawing(e) {
-    if (!panelsApplied) return;
-    
-    if (currentTool === 'text') {
-        showTextInput(e);
-        return;
-    }
-    
-    isDrawing = true;
-    const pos = getMousePos(e);
-    lastX = pos.x;
-    lastY = pos.y;
-}
-
-function draw(e) {
-    if (!isDrawing) return;
-    
-    e.preventDefault();
-    
-    const pos = getMousePos(e);
-    
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(pos.x, pos.y);
-    
-    if (currentTool === 'pencil') {
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = brushSize;
-    } else if (currentTool === 'eraser') {
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = brushSize * 2;
-    }
-    
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    lastX = pos.x;
-    lastY = pos.y;
-}
-
-function stopDrawing() {
-    if (isDrawing) {
-        isDrawing = false;
-        saveState();
-    }
-}
-
-function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    return {
-        x: (e.clientX - rect.left) * scaleX,
-        y: (e.clientY - rect.top) * scaleY
-    };
-}
-
-function handleTouch(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
-                                     e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
-        clientX: touch.clientX,
-        clientY: touch.clientY
-    });
-    canvas.dispatchEvent(mouseEvent);
-}
-
-// テキスト入力
-let textClickPos = null;
-
-function showTextInput(e) {
-    textClickPos = getMousePos(e);
-    document.getElementById('text-input-overlay').style.display = 'flex';
-    document.getElementById('text-content').focus();
-}
-
-document.getElementById('text-ok').addEventListener('click', () => {
-    const text = document.getElementById('text-content').value.trim();
-    if (text && textClickPos) {
-        ctx.fillStyle = '#000';
-        ctx.font = '20px sans-serif';
-        ctx.fillText(text, textClickPos.x, textClickPos.y);
-        saveState();
-    }
-    closeTextInput();
-});
-
-document.getElementById('text-cancel').addEventListener('click', closeTextInput);
-
-function closeTextInput() {
-    document.getElementById('text-input-overlay').style.display = 'none';
-    document.getElementById('text-content').value = '';
-    textClickPos = null;
-}
-
-// クリア
-document.getElementById('clear-canvas').addEventListener('click', () => {
-    if (confirm('本当にクリアしますか？')) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        history = [];
-        historyStep = -1;
-        updatePanelPreview();
-        panelsApplied = false;
-        document.getElementById('step1-section').style.display = 'flex';
-        document.getElementById('step2-section').style.display = 'none';
-        document.getElementById('brush-size-section').style.display = 'none';
-        document.getElementById('history-section').style.display = 'none';
-        document.getElementById('action-section').style.display = 'none';
-    }
-});
-
-// 保存
-document.getElementById('save-image').addEventListener('click', () => {
-    canvas.toBlob((blob) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            sessionStorage.setItem('mangaDrawing', reader.result);
-            {% if parent %}
-                window.location.href = "{% url 'continue_page' parent.id %}?edit=1";
-            {% else %}
-                window.location.href = "{% url 'create_page' manga.id %}?edit=1";
-            {% endif %}
-        };
-        reader.readAsDataURL(blob);
-    });
-});
-
-// 戻るボタン
-document.getElementById('back-btn').addEventListener('click', () => {
-    if (confirm('本当に戻りますか？現在の内容は破棄されます。')) {
-        {% if parent %}
-            window.location.href = "{% url 'continue_page' parent.id %}";
-        {% else %}
-            window.location.href = "{% url 'create_page' manga.id %}";
-        {% endif %}
-    }
+document.getElementById('text-font-size').addEventListener('input', function(e) {
+    document.getElementById('text-font-size-value').textContent = e.target.value + 'px';
 });
 </script>
+
+<script src="{% static 'manga/manga_editor.js' %}"></script>
 </body>
 </html>
