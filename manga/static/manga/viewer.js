@@ -4,9 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const likeForm = document.getElementById("like-form");
     const likeButton = document.getElementById("like-button");
     const likeCount = document.getElementById("like-count");
-    const branchToggle = document.getElementById("branch-toggle");
-    const branchMenu = document.getElementById("branch-menu");
+    const treeToggle = document.getElementById("tree-toggle");
     const continueLink = document.getElementById("continue-link");
+    
+    // ツリービュー関連の要素を最初に宣言
+    const treeModal = document.getElementById('tree-modal');
+    const treeCloseBtn = document.getElementById('tree-close-btn');
+    const treeNetworkContainer = document.getElementById('tree-network');
+    const treeTooltip = document.getElementById('tree-tooltip');
+    let treeNetwork = null;
 
     const pages = window.viewerPages || [];
     let currentIndex = window.initialIndex || 0;
@@ -44,24 +50,18 @@ document.addEventListener("DOMContentLoaded", () => {
             likeButton.textContent = "👍 うぃーね";
         }
 
-        updateBranchMenu(page);
-        currentIndex = newIndex;
-    }
-
-    /* 🟦 分岐メニュー */
-    function updateBranchMenu(page) {
-        branchMenu.innerHTML = "";
+        // 分岐が複数ある場合はボタンを緑色に
         if (page.children && page.children.length > 1) {
-            branchToggle.classList.remove("hidden");
-            page.children.forEach((child) => {
-                const link = document.createElement("a");
-                link.href = `/page/${child.id}/viewer/`;
-                link.className = "block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100";
-                link.textContent = `${child.title} by ${child.author}（優先度: ${child.priority}）`;
-                branchMenu.appendChild(link);
-            });
+            treeToggle.classList.add('has-branches');
         } else {
-            branchToggle.classList.add("hidden");
+            treeToggle.classList.remove('has-branches');
+        }
+
+        currentIndex = newIndex;
+        
+        // ツリービューが開いている場合は現在ページをハイライト
+        if (treeModal.classList.contains('active')) {
+            highlightCurrentNode(page.id);
         }
     }
 
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* 初期表示 */
     updateViewer(currentIndex);
 
-    /* うぃーね処理（変更なし） */
+    /* うぃーね処理 */
     likeForm.addEventListener("submit", function (event) {
         event.preventDefault();
 
@@ -100,13 +100,152 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     });
 
-    /* 分岐メニュー開閉 */
-    branchToggle.addEventListener("click", () => {
-        branchMenu.classList.toggle("hidden");
-    });
-    document.addEventListener("click", (e) => {
-        if (!branchToggle.contains(e.target) && !branchMenu.contains(e.target)) {
-            branchMenu.classList.add("hidden");
+    /* ==================== ツリービュー機能 ==================== */
+
+    // ツリービューモーダルを開く
+    treeToggle.addEventListener("click", () => {
+        treeModal.classList.add('active');
+        
+        // ネットワークがまだ作成されていない場合は作成
+        if (!treeNetwork) {
+            initTreeNetwork();
+        } else {
+            // 既に作成済みの場合は現在ページをハイライト
+            highlightCurrentNode(pages[currentIndex].id);
         }
     });
+
+    // モーダルを閉じる
+    treeCloseBtn.addEventListener("click", () => {
+        treeModal.classList.remove('active');
+    });
+
+    // モーダル背景クリックで閉じる
+    treeModal.addEventListener("click", (e) => {
+        if (e.target === treeModal) {
+            treeModal.classList.remove('active');
+        }
+    });
+
+    // ツリーネットワークを初期化
+    function initTreeNetwork() {
+        const nodes = new vis.DataSet(window.treeNodes.map(n => ({
+            ...n,
+            image: n.imageUrl,
+            shape: "image",
+            borderWidth: 2,
+            color: {
+                border: n.id === window.currentPageId ? '#22c55e' : '#ccc'
+            }
+        })));
+
+        const edges = new vis.DataSet(window.treeEdges);
+
+        const data = { nodes, edges };
+
+        const options = {
+            layout: {
+                hierarchical: {
+                    enabled: true,
+                    direction: "UD",
+                    sortMethod: "directed",
+                    levelSeparation: 150,
+                    nodeSpacing: 120,
+                    blockShifting: false,
+                    edgeMinimization: false,
+                    parentCentralization: false
+                }
+            },
+            physics: { enabled: false },
+            nodes: {
+                shape: "image",
+                size: 50,
+                borderWidth: 2,
+                color: { border: "#ccc" }
+            },
+            edges: { 
+                arrows: "to", 
+                smooth: false, 
+                color: { color: "#aaa" } 
+            },
+            interaction: {
+                hover: true,
+                dragNodes: false
+            }
+        };
+
+        treeNetwork = new vis.Network(treeNetworkContainer, data, options);
+
+        // ツールチップ表示
+        treeNetwork.on("hoverNode", (params) => {
+            const node = nodes.get(params.node);
+            if (!node) return;
+
+            const title = node.title || "タイトル不明";
+            const author = node.author || "作者不明";
+
+            treeTooltip.innerHTML = `
+                <div style="font-weight:bold;">${title}</div>
+                <div style="color:#666;">${author}</div>
+            `;
+            treeTooltip.style.left = params.event.pageX + 10 + "px";
+            treeTooltip.style.top = params.event.pageY + 10 + "px";
+            treeTooltip.style.display = "block";
+        });
+
+        treeNetwork.on("blurNode", () => {
+            treeTooltip.style.display = "none";
+        });
+
+        // ノードクリックでビューアページに遷移
+        treeNetwork.on("click", (params) => {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                window.location.href = `/page/${nodeId}/viewer/`;
+            }
+        });
+
+        // 現在のページにフォーカス
+        setTimeout(() => {
+            treeNetwork.focus(window.currentPageId, {
+                scale: 1,
+                animation: {
+                    duration: 500,
+                    easingFunction: 'easeInOutQuad'
+                }
+            });
+        }, 100);
+    }
+
+    // 現在のノードをハイライト
+    function highlightCurrentNode(pageId) {
+        if (!treeNetwork) return;
+
+        const nodes = treeNetwork.body.data.nodes;
+        
+        // すべてのノードを通常の色に戻す
+        nodes.forEach(node => {
+            nodes.update({
+                id: node.id,
+                color: { border: '#ccc' },
+                borderWidth: 2
+            });
+        });
+
+        // 現在のページを緑色に
+        nodes.update({
+            id: pageId,
+            color: { border: '#22c55e' },
+            borderWidth: 3
+        });
+
+        // 現在のページにフォーカス
+        treeNetwork.focus(pageId, {
+            scale: 1,
+            animation: {
+                duration: 500,
+                easingFunction: 'easeInOutQuad'
+            }
+        });
+    }
 });

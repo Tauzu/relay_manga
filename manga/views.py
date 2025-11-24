@@ -112,12 +112,43 @@ def page_viewer(request, page_id):
     # 現在のページのインデックスを特定
     current_index = ordered_pages.index(page)
 
+    # 🔹 5. ツリービュー用のノードとエッジデータを生成（manga_detailと同様）
+    manga = page.manga
+    all_pages = list(manga.pages.select_related('author', 'parent'))
+
+    def get_depth(p):
+        depth = 0
+        parent = p.parent
+        while parent:
+            depth += 1
+            parent = parent.parent
+        return depth
+
+    nodes = []
+    edges = []
+    for p in all_pages:
+        thumbnail_url = p.image.build_url(width=100, height=100, crop='fill') if p.image else ''
+        
+        nodes.append({
+            "id": p.id,
+            "title": p.display_title,
+            "author": p.author.username,
+            "imageUrl": thumbnail_url,
+            "level": get_depth(p),
+        })
+
+        if p.parent_id:
+            edges.append({"from": p.parent_id, "to": p.id})
+
     return render(request, "manga/viewer.html", {
         "manga": page.manga,
         "pages": ordered_pages,
-        "pages_json": pages_data,
+        "pages_json": json.dumps(pages_data),
         "current_index": current_index,
         "first_page": page,
+        "nodes": json.dumps(nodes),
+        "edges": json.dumps(edges),
+        "current_page_id": page.id,
     })
 
 def page_branches_json(request, page_id):
