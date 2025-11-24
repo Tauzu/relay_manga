@@ -129,15 +129,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ツリーネットワークを初期化
     function initTreeNetwork() {
-        const nodes = new vis.DataSet(window.treeNodes.map(n => ({
-            ...n,
-            image: n.imageUrl,
-            shape: "image",
-            borderWidth: 2,
-            color: {
-                border: n.id === window.currentPageId ? '#22c55e' : '#ccc'
-            }
-        })));
+        const nodes = new vis.DataSet(window.treeNodes.map(n => {
+            const isCurrentPage = n.id === pages[currentIndex].id;
+            return {
+                ...n,
+                image: n.imageUrl,
+                shape: "image",
+                size: 50,
+                borderWidth: isCurrentPage ? 3 : 1,
+                color: {
+                    border: isCurrentPage ? '#22c55e' : '#999',
+                    background: isCurrentPage ? '#22c55e' : '#ffffff'
+                },
+                shapeProperties: {
+                    useBorderWithImage: true
+                }
+            };
+        }));
 
         const edges = new vis.DataSet(window.treeEdges);
 
@@ -160,8 +168,14 @@ document.addEventListener("DOMContentLoaded", () => {
             nodes: {
                 shape: "image",
                 size: 50,
-                borderWidth: 2,
-                color: { border: "#ccc" }
+                borderWidth: 1,
+                color: { 
+                    border: "#999",
+                    background: "#ffffff"
+                },
+                shapeProperties: {
+                    useBorderWithImage: true
+                }
             },
             edges: { 
                 arrows: "to", 
@@ -205,16 +219,21 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        // 現在のページにフォーカス
-        setTimeout(() => {
-            treeNetwork.focus(window.currentPageId, {
-                scale: 1,
-                animation: {
-                    duration: 500,
-                    easingFunction: 'easeInOutQuad'
-                }
-            });
-        }, 100);
+        // レンダリング完了後に現在のページにフォーカス
+        treeNetwork.on("afterDrawing", function() {
+            // 一度だけ実行
+            treeNetwork.off("afterDrawing");
+            
+            setTimeout(() => {
+                treeNetwork.focus(pages[currentIndex].id, {
+                    scale: 1.2,
+                    animation: {
+                        duration: 600,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }, 50);
+        });
     }
 
     // 現在のノードをハイライト
@@ -222,28 +241,37 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!treeNetwork) return;
 
         const nodes = treeNetwork.body.data.nodes;
+        const allNodeIds = nodes.getIds();
         
-        // すべてのノードを通常の色に戻す
-        nodes.forEach(node => {
+        // すべてのノードを通常の状態に戻す
+        allNodeIds.forEach(nodeId => {
             nodes.update({
-                id: node.id,
-                color: { border: '#ccc' },
-                borderWidth: 2
+                id: nodeId,
+                color: { 
+                    border: '#999',
+                    background: '#ffffff'
+                },
+                borderWidth: 1,
+                size: 50
             });
         });
 
-        // 現在のページを緑色に
+        // 現在のページを強調表示
         nodes.update({
             id: pageId,
-            color: { border: '#22c55e' },
-            borderWidth: 3
+            color: { 
+                border: '#22c55e',
+                background: '#22c55e'
+            },
+            borderWidth: 3,
+            size: 50
         });
 
         // 現在のページにフォーカス
         treeNetwork.focus(pageId, {
-            scale: 1,
+            scale: 1.2,
             animation: {
-                duration: 500,
+                duration: 600,
                 easingFunction: 'easeInOutQuad'
             }
         });
