@@ -193,24 +193,20 @@
 
 <div class="viewer-wrapper w-full md:max-w-4xl mx-auto viewer-overlay shadow-lg">
 
-    <!-- 🏷 タイトル部分 -->
-    <div class="mb-4 text-lg text-gray-800 font-semibold px-4 md:px-0">
-        <span class="cursor-pointer hover:underline"
-              onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
-            {{ manga.title }}
-        </span>
-        &gt;
-        <span id="viewer-title">{{ first_page.display_title }}</span>
-        <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
-    </div>
-
-
     <!-- 📄 画像表示エリア -->
     <div class="relative w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
+        
+        <!-- 🏷 マンガタイトル（画像エリアの上） -->
+        <div class="bg-white px-4 py-3 border-b border-gray-200">
+            <a href="{% url 'manga_detail' manga.id %}" 
+               class="text-xl font-bold text-black hover:underline">
+                {{ manga.title }}
+            </a>
+        </div>
 
         <!-- ページ番号（右上に表示） -->
         <div id="page-counter"
-            class="absolute top-4 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
+            class="absolute top-16 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
         </div>
 
         <!-- 🟦 Splide スライダー -->
@@ -231,6 +227,16 @@
             <button id="tree-toggle"
                     class="bg-white/80 hover:bg-white rounded-full p-2 shadow transition font-bold"
                     title="ツリーを表示">…</button>
+        </div>
+        
+        <!-- 📝 ページ情報（画像エリアの下） -->
+        <div class="bg-white px-4 py-3 border-t border-gray-200 text-center">
+            <h2 id="viewer-title" class="text-lg font-semibold text-gray-900 mb-1">
+                {{ first_page.display_title }}
+            </h2>
+            <p class="text-sm text-gray-600">
+                作者: <span id="viewer-author">{{ first_page.author.username }}</span>
+            </p>
         </div>
     </div>
 

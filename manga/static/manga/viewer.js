@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
     const title = document.getElementById("viewer-title");
-    const idSpan = document.getElementById("viewer-id");
     const likeForm = document.getElementById("like-form");
     const likeButton = document.getElementById("like-button");
     const likeCount = document.getElementById("like-count");
@@ -32,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!page) return;
 
         title.textContent = page.title;
-        idSpan.textContent = page.id;
+        document.getElementById("viewer-author").textContent = page.author;
         likeCount.textContent = page.likes;
         likeForm.action = page.like_url;
         continueLink.href = `/page/${page.id}/continue/`;
