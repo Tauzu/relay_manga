@@ -314,11 +314,75 @@ def my_page(request):
     # 自分が描いたページ
     my_pages = Page.objects.filter(author=user).select_related('manga').order_by('-created_at')
     
-    # 受け取ったバトン（未完了のみ）
-    received_batons = Baton.objects.filter(
+    # 未達成バトンをページごとにグループ化
+    pending_batons_raw = Baton.objects.filter(
         to_user=user,
         is_completed=False
     ).select_related('page__manga', 'from_user').order_by('-created_at')
+    
+    # ページIDごとにグループ化
+    pending_grouped = {}
+    for baton in pending_batons_raw:
+        page_id = baton.page.id
+        if page_id not in pending_grouped:
+            pending_grouped[page_id] = {
+                'page': baton.page,
+                'senders': [],
+                'latest_date': baton.created_at,
+                'count': 0
+            }
+        pending_grouped[page_id]['senders'].append(baton.from_user.username)
+        pending_grouped[page_id]['count'] += 1
+        if baton.created_at > pending_grouped[page_id]['latest_date']:
+            pending_grouped[page_id]['latest_date'] = baton.created_at
+    
+    # リスト形式に変換
+    pending_batons = []
+    for group_data in pending_grouped.values():
+        pending_batons.append({
+            'page': group_data['page'],
+            'first_sender': group_data['senders'][0],
+            'count': group_data['count'],
+            'latest_date': group_data['latest_date']
+        })
+    
+    # 最新順にソート
+    pending_batons.sort(key=lambda x: x['latest_date'], reverse=True)
+    
+    # 達成済みバトンをページごとにグループ化
+    completed_batons_raw = Baton.objects.filter(
+        to_user=user,
+        is_completed=True
+    ).select_related('page__manga', 'from_user').order_by('-created_at')
+    
+    # ページIDごとにグループ化
+    completed_grouped = {}
+    for baton in completed_batons_raw:
+        page_id = baton.page.id
+        if page_id not in completed_grouped:
+            completed_grouped[page_id] = {
+                'page': baton.page,
+                'senders': [],
+                'latest_date': baton.created_at,
+                'count': 0
+            }
+        completed_grouped[page_id]['senders'].append(baton.from_user.username)
+        completed_grouped[page_id]['count'] += 1
+        if baton.created_at > completed_grouped[page_id]['latest_date']:
+            completed_grouped[page_id]['latest_date'] = baton.created_at
+    
+    # リスト形式に変換
+    completed_batons = []
+    for group_data in completed_grouped.values():
+        completed_batons.append({
+            'page': group_data['page'],
+            'first_sender': group_data['senders'][0],
+            'count': group_data['count'],
+            'latest_date': group_data['latest_date']
+        })
+    
+    # 最新順にソート
+    completed_batons.sort(key=lambda x: x['latest_date'], reverse=True)
     
     # プロフィールフォーム
     profile, created = UserProfile.objects.get_or_create(user=user)
@@ -348,11 +412,11 @@ def my_page(request):
     
     return render(request, 'manga/my_page.html', {
         'my_pages': my_pages,
-        'received_batons': received_batons,
+        'pending_batons': pending_batons,
+        'completed_batons': completed_batons,
         'profile_form': profile_form,
         'username_form': username_form,
     })
-
 
 # ========== 認証関連 ==========
 
