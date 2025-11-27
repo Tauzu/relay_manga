@@ -3,6 +3,21 @@
 {% block title %}マイページ{% endblock %}
 
 {% block content %}
+<!-- 成功メッセージ表示用 -->
+{% if messages %}
+    <div id="message-container" class="fixed top-20 right-4 z-50 space-y-2">
+        {% for message in messages %}
+            <div class="message-toast px-6 py-4 rounded-lg shadow-lg text-white font-semibold flex items-center gap-3 animate-slide-in
+                {% if message.tags == 'success' %}bg-green-500{% elif message.tags == 'error' %}bg-red-500{% else %}bg-blue-500{% endif %}">
+                <span class="text-2xl">
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✗{% else %}ℹ{% endif %}
+                </span>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
 <div class="max-w-6xl mx-auto">
     <h2 class="text-3xl font-bold mb-8 text-center">マイページ</h2>
     
@@ -258,11 +273,42 @@ document.getElementById('baton-filter').addEventListener('change', function(e) {
         document.getElementById('completed-batons').classList.remove('hidden');
     }
 });
+
+// メッセージトーストの自動非表示
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('.message-toast');
+    messages.forEach(message => {
+        setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transform = 'translateX(100%)';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    });
+});
 </script>
 
 <style>
 .tab-button {
     transition: all 0.2s;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+
+.message-toast {
+    transition: all 0.3s ease-out;
 }
 </style>
 {% endblock %}

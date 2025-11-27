@@ -4,6 +4,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth import login
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import Manga, Page, Baton, UserProfile
@@ -188,6 +189,30 @@ def create_page(request, manga_id, parent_id=None):
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                # ページを保存
+                page = form.save(commit=False)
+                page.manga = manga
+                page.author = request.user
+                if parent:
+                    page.parent = parent
+                page.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'manga_id': manga.id,
+                    'baton_completed': None  # create_pageではバトン達成なし
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'フォームの入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
         if form.is_valid():
             page = form.save(commit=False)
             page.manga = manga
@@ -213,6 +238,48 @@ def continue_page(request, parent_id):
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                # ページ保存前にバトンをチェック（signalで自動完了される前に）
+                completed_batons = Baton.objects.filter(
+                    page=parent,
+                    to_user=request.user,
+                    is_completed=False
+                )
+                
+                print(f"DEBUG: Checking batons for parent page {parent.id}, user {request.user.username}")
+                print(f"DEBUG: Found {completed_batons.count()} uncompleted batons")
+                
+                baton_completed = None
+                if completed_batons.exists():
+                    count = completed_batons.count()
+                    baton_completed = {
+                        'count': count,
+                        'page_id': parent.id  # 親ページのID
+                    }
+                    print(f"DEBUG: Baton completed: {baton_completed}")
+                
+                # ページを保存（この時点でsignalが発火してバトンが完了になる）
+                page = form.save(commit=False)
+                page.manga = manga
+                page.author = request.user
+                page.parent = parent
+                page.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'manga_id': manga.id,
+                    'baton_completed': baton_completed
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'フォームの入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
         if form.is_valid():
             page = form.save(commit=False)
             page.manga = manga
@@ -260,6 +327,14 @@ def like_page(request, page_id):
 
 # ========== バトンパス機能 ==========
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Page, Baton
+from .forms import BatonPassForm
+
 @login_required
 def pass_baton(request, page_id):
     """バトンパス処理"""
@@ -267,13 +342,19 @@ def pass_baton(request, page_id):
     
     if request.method == 'POST':
         form = BatonPassForm(request.POST)
-        if form.is_valid():
-            to_user = form.cleaned_data['to_user']
-            
-            # 自分自身には送れない
-            if to_user == request.user:
-                form.add_error('to_user', '自分自身にはバトンを渡せません')
-            else:
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                to_user = form.cleaned_data['to_user']
+                
+                # 自分自身には送れない
+                if to_user == request.user:
+                    return JsonResponse({
+                        'success': False,
+                        'error': '自分自身にはバトンを渡せません'
+                    })
+                
                 # バトン作成
                 baton = Baton.objects.create(
                     page=page,
@@ -296,6 +377,28 @@ def pass_baton(request, page_id):
                 except Exception as e:
                     pass  # メール送信失敗しても処理は続行
                 
+                return JsonResponse({
+                    'success': True,
+                    'username': to_user.username
+                })
+            else:
+                # フォームエラー
+                errors = form.errors.get('to_user', ['入力内容に誤りがあります'])
+                return JsonResponse({
+                    'success': False,
+                    'error': errors[0] if errors else '入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
+        if form.is_valid():
+            to_user = form.cleaned_data['to_user']
+            
+            if to_user != request.user:
+                Baton.objects.create(
+                    page=page,
+                    from_user=request.user,
+                    to_user=to_user
+                )
                 return redirect('page_viewer', page_id=page.id)
     else:
         form = BatonPassForm()
