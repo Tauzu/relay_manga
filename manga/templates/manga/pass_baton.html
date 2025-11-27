@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}バトンをパス{% endblock %}
+
+{% block content %}
+<!-- 成功メッセージ表示用（モーダル風） -->
+<div id="success-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center animate-scale-in">
+        <div class="text-6xl mb-4">🏃</div>
+        <h3 class="text-2xl font-bold mb-2">バトンパス成功！</h3>
+        <p id="success-message" class="text-gray-600 mb-6"></p>
+        <button onclick="closeModal()" class="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+            OK
+        </button>
+    </div>
+</div>
+
+<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
+    <h2 class="text-2xl font-bold text-center mb-6">バトンをパス</h2>
+    
+    <!-- 現在のページ情報 -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 class="font-semibold text-gray-700 mb-2">対象ページ</h3>
+        <div class="flex items-center gap-4">
+            <div class="w-24 h-24 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                <img src="{{ page.image.url }}" alt="{{ page.display_title }}" class="w-full h-full object-cover">
+            </div>
+            <div>
+                <p class="font-semibold">{{ page.manga.title }}</p>
+                <p class="text-gray-600">{{ page.display_title }}</p>
+                <p class="text-sm text-gray-500">by {{ page.author.username }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- バトンパスフォーム -->
+    <form method="post" class="space-y-6" id="baton-form">
+        {% csrf_token %}
+        
+        <div>
+            <label for="{{ form.to_user.id_for_label }}" class="block font-semibold mb-2 text-gray-700">
+                {{ form.to_user.label }}
+            </label>
+            {{ form.to_user }}
+            {% if form.to_user.errors %}
+                <p class="text-red-500 text-sm mt-1">{{ form.to_user.errors.0 }}</p>
+            {% endif %}
+            <p class="text-sm text-gray-600 mt-2">
+                バトンを渡したいユーザーの名前を入力してください
+            </p>
+        </div>
+        
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h4 class="font-semibold text-blue-900 mb-2">💡 バトンパスとは？</h4>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• 特定のユーザーに「このページの続きを描いてほしい」とリクエストできる機能です</li>
+                <li>• 相手がメールアドレスを登録していれば、通知が届きます</li>
+                <li>• 相手が続きのページを追加すると、バトンは自動的に完了します</li>
+            </ul>
+        </div>
+        
+        <div class="flex gap-3">
+            <button type="submit" 
+                    class="flex-1 bg-green-500 text-white py-3 rounded font-semibold hover:bg-green-600 transition">
+                バトンを渡す
+            </button>
+            <a href="{% url 'page_viewer' page.id %}" 
+               class="flex-1 bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition text-center">
+                キャンセル
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// 成功モーダルを表示する関数
+function showSuccessModal(username) {
+    const modal = document.getElementById('success-modal');
+    const message = document.getElementById('success-message');
+    message.textContent = `${username}さんにバトンを渡しました！`;
+    modal.classList.remove('hidden');
+}
+
+// モーダルを閉じてビューアに戻る
+function closeModal() {
+    window.location.href = '{% url "page_viewer" page.id %}';
+}
+
+// フォーム送信処理
+document.getElementById('baton-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    
+    // ボタンを無効化
+    submitButton.disabled = true;
+    submitButton.textContent = '送信中...';
+    
+    try {
+        const response = await fetch('{% url "pass_baton" page.id %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 成功モーダルを表示
+            showSuccessModal(data.username);
+        } else {
+            // エラー表示
+            if (data.error) {
+                alert(data.error);
+            }
+            submitButton.disabled = false;
+            submitButton.textContent = 'バトンを渡す';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('エラーが発生しました');
+        submitButton.disabled = false;
+        submitButton.textContent = 'バトンを渡す';
+    }
+});
+</script>
+
+<style>
+@keyframes scale-in {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+}
+</style>
+{% endblock %}

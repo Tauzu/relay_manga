@@ -47,7 +47,7 @@
         aspect-ratio: 1 / 1;
         width: 100%;
         height: auto;
-        max-width: 500px;   /* PCでは画像エリアを少し小さく */
+        max-width: 500px;
         max-height: 500px;
         object-fit: contain;
         border-radius: 0.5rem;
@@ -193,24 +193,20 @@
 
 <div class="viewer-wrapper w-full md:max-w-4xl mx-auto viewer-overlay shadow-lg">
 
-    <!-- 🏷 タイトル部分 -->
-    <div class="mb-4 text-lg text-gray-800 font-semibold px-4 md:px-0">
-        <span class="cursor-pointer hover:underline"
-              onclick="window.location.href='{% url 'manga_detail' manga.id %}'">
-            {{ manga.title }}
-        </span>
-        &gt;
-        <span id="viewer-title">{{ first_page.display_title }}</span>
-        <span class="text-gray-500 text-sm">(ID: <span id="viewer-id">{{ first_page.id }}</span>)</span>
-    </div>
-
-
     <!-- 📄 画像表示エリア -->
     <div class="relative w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
+        
+        <!-- 🏷 マンガタイトル（画像エリアの上） -->
+        <div class="bg-white px-4 py-3 border-b border-gray-200">
+            <a href="{% url 'manga_detail' manga.id %}" 
+               class="text-xl font-bold text-black hover:underline">
+                {{ manga.title }}
+            </a>
+        </div>
 
         <!-- ページ番号（右上に表示） -->
         <div id="page-counter"
-            class="absolute top-4 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
+            class="absolute top-16 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
         </div>
 
         <!-- 🟦 Splide スライダー -->
@@ -232,34 +228,58 @@
                     class="bg-white/80 hover:bg-white rounded-full p-2 shadow transition font-bold"
                     title="ツリーを表示">…</button>
         </div>
+        
+        <!-- 📝 ページ情報（画像エリアの下） -->
+        <div class="bg-white px-4 py-3 border-t border-gray-200 text-center">
+            <h2 id="viewer-title" class="text-lg font-semibold text-gray-900 mb-1">
+                {{ first_page.display_title }}
+            </h2>
+            <p class="text-sm text-gray-600">
+                作者: <span id="viewer-author">{{ first_page.author.username }}</span>
+            </p>
+        </div>
     </div>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/css/splide.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/js/splide.min.js"></script>
 
-    <!-- ❤️ うぃーねボタン + 続きを描く -->
-    <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0">
-        <form id="like-form" method="post" class="w-full sm:w-auto text-center">
-            {% csrf_token %}
-            <button type="submit" id="like-button"
-                class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 sm:px-6 sm:py-3 rounded-lg bg-blue-500 text-white font-semibold text-lg hover:bg-blue-600 transition disabled:bg-gray-400">
-                👍 うぃーね
-            </button>
-        </form>
+    <!-- ❤️ うぃーねボタン + 続きを描く + バトンパス -->
+    <div class="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4 px-4 md:px-0 flex-wrap">
+        <!-- うぃーね・共有グループ（常に横並び） -->
+        <div class="flex items-center gap-3">
+            <form id="like-form" method="post" class="text-center">
+                {% csrf_token %}
+                <button type="submit" id="like-button"
+                    class="flex justify-center items-center gap-2 px-5 py-3 rounded-lg bg-blue-500 text-white font-semibold text-lg hover:bg-blue-600 transition disabled:bg-gray-400">
+                    👍 うぃーね
+                </button>
+            </form>
 
-        <span class="text-gray-700 text-lg flex items-center gap-1">
-            ❤️ <span id="like-count">{{ first_page.likes }}</span>
-        </span>
+            <span class="text-gray-700 text-lg flex items-center gap-1">
+                ❤️ <span id="like-count">{{ first_page.likes }}</span>
+            </span>
 
-        <!-- 公式SVGを使った X 共有ボタン -->
-        <a id="share-x-button"
-           href="#"
-           class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-black text-white rounded-lg font-semibold text-lg hover:bg-gray-800 transition">
+            <!-- 共有ボタン（X・LINE） -->
+            <div class="flex gap-2">
+                <!-- X 共有ボタン -->
+                <a id="share-x-button"
+                   href="#"
+                   class="flex justify-center items-center p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+                   title="Xで共有">
+                    <img src="{% static 'x-logo/logo.svg' %}" class="w-6 h-6" alt="X">
+                </a>
 
-            <img src="{% static 'x-logo/logo.svg' %}" class="w-6 h-6" alt="X">
-
-            共有
-        </a>
+                <!-- LINE 共有ボタン -->
+                <a id="share-line-button"
+                   href="#"
+                   class="flex justify-center items-center p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                   title="LINEで共有">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
 
         <a id="continue-link"
            href="{% url 'continue_page' first_page.id %}"
@@ -269,6 +289,14 @@
             </svg>
             続きを投稿
         </a>
+
+        <!-- バトンパスボタン（ログイン時のみ表示） -->
+        {% if user.is_authenticated %}
+        <a href="{% url 'pass_baton' first_page.id %}"
+           class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-lg font-semibold text-lg hover:bg-orange-600 transition">
+            🏃 バトンをパス
+        </a>
+        {% endif %}
     </div>
 </div>
 
@@ -298,16 +326,28 @@
     window.currentPageId = {{ current_page_id }};
 </script>
 
-<!-- X共有用JS -->
+<!-- X・LINE共有用JS -->
 <script>
-    const shareText = encodeURIComponent(
+    // X共有
+    const xShareText = encodeURIComponent(
         `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト\n`
     );
-
     const shareUrl = encodeURIComponent(window.location.href);
 
-    document.getElementById("share-x-button").addEventListener("click", () => {
-        const url = `https://x.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+    document.getElementById("share-x-button").addEventListener("click", (e) => {
+        e.preventDefault();
+        const url = `https://x.com/intent/tweet?text=${xShareText}&url=${shareUrl}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    // LINE共有
+    const lineShareText = encodeURIComponent(
+        `「{{ manga.title }}」の {{ first_page.display_title }} のつづきをかいてください！\n${window.location.href}`
+    );
+
+    document.getElementById("share-line-button").addEventListener("click", (e) => {
+        e.preventDefault();
+        const url = `https://line.me/R/share?text=${lineShareText}`;
         window.open(url, "_blank", "noopener,noreferrer");
     });
 </script>
