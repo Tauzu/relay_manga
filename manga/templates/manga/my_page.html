@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}マイページ{% endblock %}
+
+{% block content %}
+<!-- 成功メッセージ表示用 -->
+{% if messages %}
+    <div id="message-container" class="fixed top-20 right-4 z-50 space-y-2">
+        {% for message in messages %}
+            <div class="message-toast px-6 py-4 rounded-lg shadow-lg text-white font-semibold flex items-center gap-3 animate-slide-in
+                {% if message.tags == 'success' %}bg-green-500{% elif message.tags == 'error' %}bg-red-500{% else %}bg-blue-500{% endif %}">
+                <span class="text-2xl">
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✗{% else %}ℹ{% endif %}
+                </span>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold mb-8 text-center">マイページ</h2>
+    
+    <!-- タブナビゲーション -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="showTab('my-pages')" id="tab-my-pages" class="tab-button active border-b-2 py-4 px-1 text-center border-blue-500 font-medium text-blue-600">
+                    描いたページ
+                </button>
+                <button onclick="showTab('batons')" id="tab-batons" class="tab-button border-b-2 py-4 px-1 text-center border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    受け取ったバトン
+                    {% if pending_batons %}
+                        <span class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">{{ pending_batons|length }}</span>
+                    {% endif %}
+                </button>
+                <button onclick="showTab('settings')" id="tab-settings" class="tab-button border-b-2 py-4 px-1 text-center border-transparent font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    設定
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- 描いたページ一覧 -->
+    <div id="content-my-pages" class="tab-content">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-4">あなたが描いたページ</h3>
+            
+            {% if my_pages %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for page in my_pages %}
+                        <a href="{% url 'page_viewer' page.id %}" class="block bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition">
+                            <div class="aspect-square bg-gray-200 flex items-center justify-center overflow-hidden">
+                                <img src="{{ page.image.url }}" alt="{{ page.display_title }}" class="object-cover w-full h-full">
+                            </div>
+                            <div class="p-3">
+                                <p class="font-semibold text-gray-900">{{ page.display_title }}</p>
+                                <p class="text-sm text-gray-600">{{ page.manga.title }}</p>
+                                <p class="text-xs text-gray-400 mt-1">{{ page.created_at|date:"Y/m/d H:i" }}</p>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-center py-8">まだページを描いていません</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 受け取ったバトン一覧 -->
+    <div id="content-batons" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">受け取ったバトン</h3>
+                
+                <!-- 表示切替プルダウン -->
+                <select id="baton-filter" class="border rounded px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-blue-300">
+                    <option value="pending">未達成</option>
+                    <option value="completed">達成済み</option>
+                </select>
+            </div>
+            
+            <!-- 未達成バトン一覧 -->
+            <div id="pending-batons" class="baton-list">
+                {% if pending_batons %}
+                    <div class="space-y-4">
+                        {% for baton_group in pending_batons %}
+                            <div class="border rounded-lg p-4 hover:bg-gray-50 transition">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-gray-900">
+                                            「{{ baton_group.page.manga.title }}」- {{ baton_group.page.display_title }}
+                                        </p>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            {% if baton_group.count > 1 %}
+                                                <span class="font-medium">{{ baton_group.first_sender }}</span> さんら
+                                                <span class="font-bold text-blue-600">{{ baton_group.count }}人</span>
+                                                からのバトン
+                                            {% else %}
+                                                <span class="font-medium">{{ baton_group.first_sender }}</span> さんからのバトン
+                                            {% endif %}
+                                        </p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {{ baton_group.latest_date|date:"Y/m/d H:i" }}
+                                        </p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'page_viewer' baton_group.page.id %}" 
+                                           class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition text-sm">
+                                            表示
+                                        </a>
+                                        <a href="{% url 'continue_page' baton_group.page.id %}" 
+                                           class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition text-sm">
+                                            続きを描く
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-center py-8">未達成のバトンはありません</p>
+                {% endif %}
+            </div>
+
+            <!-- 達成済みバトン一覧 -->
+            <div id="completed-batons" class="baton-list hidden">
+                {% if completed_batons %}
+                    <div class="space-y-4">
+                        {% for baton_group in completed_batons %}
+                            <div class="border rounded-lg p-4 bg-gray-50 opacity-75">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-semibold text-gray-900">
+                                                「{{ baton_group.page.manga.title }}」- {{ baton_group.page.display_title }}
+                                            </p>
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-semibold">
+                                                達成済み
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            {% if baton_group.count > 1 %}
+                                                <span class="font-medium">{{ baton_group.first_sender }}</span> さんら
+                                                <span class="font-bold text-blue-600">{{ baton_group.count }}人</span>
+                                                からのバトン
+                                            {% else %}
+                                                <span class="font-medium">{{ baton_group.first_sender }}</span> さんからのバトン
+                                            {% endif %}
+                                        </p>
+                                        <p class="text-xs text-gray-400 mt-1">
+                                            {{ baton_group.latest_date|date:"Y/m/d H:i" }}
+                                        </p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a href="{% url 'page_viewer' baton_group.page.id %}" 
+                                           class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition text-sm">
+                                            表示
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500 text-center py-8">達成済みのバトンはありません</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定 -->
+    <div id="content-settings" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-bold mb-6">アカウント設定</h3>
+            
+            <!-- ユーザー名変更 -->
+            <div class="mb-8 pb-8 border-b">
+                <h4 class="font-semibold text-gray-700 mb-4">ユーザー名の変更</h4>
+                <p class="text-sm text-gray-600 mb-4">
+                    現在のユーザー名: <span class="font-semibold">{{ user.username }}</span>
+                </p>
+                
+                <form method="post" class="max-w-md">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_username">
+                    
+                    <div class="mb-4">
+                        {{ username_form.new_username.label_tag }}
+                        {{ username_form.new_username }}
+                        {% if username_form.new_username.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ username_form.new_username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition font-semibold">
+                        ユーザー名を変更
+                    </button>
+                </form>
+            </div>
+            
+            <!-- メールアドレス設定 -->
+            <div class="mb-8 pb-8 border-b">
+                <h4 class="font-semibold text-gray-700 mb-4">メールアドレス設定</h4>
+                <p class="text-sm text-gray-600 mb-4">
+                    メールアドレスを登録すると、バトンを受け取った際に通知メールが届きます
+                </p>
+                
+                <form method="post" class="max-w-md">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_profile">
+                    
+                    <div class="mb-4">
+                        {{ profile_form.email.label_tag }}
+                        {{ profile_form.email }}
+                        {% if profile_form.email.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ profile_form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition font-semibold">
+                        保存
+                    </button>
+                </form>
+            </div>
+            
+            <!-- ログアウト -->
+            <div>
+                <h4 class="font-semibold text-gray-700 mb-4">ログアウト</h4>
+                <form action="{% url 'logout' %}" method="post" class="max-w-md">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="w-full px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 transition font-semibold">
+                        ログアウト
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // すべてのタブコンテンツを非表示
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+    });
+    
+    // すべてのタブボタンを非アクティブ化
+    document.querySelectorAll('.tab-button').forEach(el => {
+        el.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // 選択されたタブを表示
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    
+    // 選択されたタブボタンをアクティブ化
+    const activeButton = document.getElementById('tab-' + tabName);
+    activeButton.classList.remove('border-transparent', 'text-gray-500');
+    activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+}
+
+// バトン表示切替
+document.getElementById('baton-filter').addEventListener('change', function(e) {
+    const filterValue = e.target.value;
+    
+    if (filterValue === 'pending') {
+        document.getElementById('pending-batons').classList.remove('hidden');
+        document.getElementById('completed-batons').classList.add('hidden');
+    } else {
+        document.getElementById('pending-batons').classList.add('hidden');
+        document.getElementById('completed-batons').classList.remove('hidden');
+    }
+});
+
+// メッセージトーストの自動非表示
+document.addEventListener('DOMContentLoaded', function() {
+    const messages = document.querySelectorAll('.message-toast');
+    messages.forEach(message => {
+        setTimeout(() => {
+            message.style.opacity = '0';
+            message.style.transform = 'translateX(100%)';
+            setTimeout(() => message.remove(), 300);
+        }, 3000);
+    });
+});
+</script>
+
+<style>
+.tab-button {
+    transition: all 0.2s;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+
+.message-toast {
+    transition: all 0.3s ease-out;
+}
+</style>
+{% endblock %}

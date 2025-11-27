@@ -26,14 +26,14 @@
                 <!-- PCでのみ表示される挨拶 -->
                 <span class="hidden sm:inline text-gray-700">こんにちは、{{ user.username }} さん！</span>
 
-                <!-- ログアウトボタン -->
-                <form action="{% url 'logout' %}" method="post" class="inline">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="px-3 py-2 sm:px-4 sm:py-2 rounded bg-red-500 text-white text-sm sm:text-base hover:bg-red-600 transition">
-                        ログアウト
-                    </button>
-                </form>
+                <!-- マイページボタン（通知バッジ付き） -->
+                <a href="{% url 'my_page' %}"
+                    class="relative px-3 py-2 sm:px-4 sm:py-2 rounded bg-white border border-black text-black text-sm sm:text-base hover:bg-gray-100 transition">
+                    マイページ
+                    {% if pending_baton_count > 0 %}
+                        <span class="absolute -top-1 -right-1 inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    {% endif %}
+                </a>
             {% else %}
                 <!-- ログインボタン -->
                 <a href="{% url 'login' %}"

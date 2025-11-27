@@ -4,6 +4,18 @@
 {% block title %}新しいページを追加{% endblock %}
 
 {% block content %}
+<!-- バトン達成モーダル -->
+<div id="baton-completed-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center animate-bounce-in">
+        <div class="text-6xl mb-4">✨</div>
+        <h3 class="text-2xl font-bold mb-2">バトン達成！</h3>
+        <p id="baton-message" class="text-gray-600 mb-6"></p>
+        <button onclick="closeBatonModal()" class="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition">
+            OK
+        </button>
+    </div>
+</div>
+
 <div class="max-w-6xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow">
     <h2 class="text-2xl font-bold text-center mb-8">新しいページを追加</h2>
 
@@ -84,9 +96,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputFile = document.getElementById("id_image");
     const dropInner = document.getElementById("drop-inner");
     const drawBtn = document.getElementById("draw-btn");
+    const createForm = document.getElementById("create-form");
     let hasDrawing = false;
 
-    // URLパラメータで新規作成かどうかを判定
+    // URLパラメータで再編集モードかどうかを判定
     const urlParams = new URLSearchParams(window.location.search);
     const isNewPage = !urlParams.has('edit');
 
@@ -106,19 +119,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 hasDrawing = true;
             });
     } else {
-        // 新規ページの場合はsessionStorageをクリア
-        sessionStorage.removeItem('mangaDrawing');
-        sessionStorage.removeItem('mangaDrawingImage');
+        if (!isNewPage) {
+            sessionStorage.removeItem('mangaDrawing');
+            sessionStorage.removeItem('mangaDrawingImage');
+        }
     }
 
     // おえかきボタン：画像がある場合は再編集モードで遷移
     drawBtn.addEventListener('click', (e) => {
         if (hasDrawing) {
             e.preventDefault();
-            // 再編集フラグを付けて遷移
             window.location.href = drawBtn.href + '?edit=1';
         } else {
-            // 新規作成の場合はsessionStorageをクリア
             sessionStorage.removeItem('mangaDrawing');
             sessionStorage.removeItem('mangaDrawingImage');
         }
@@ -126,12 +138,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // プレビュー画像をクリックした時の動作
     dropZone.addEventListener("click", (e) => {
-        // 画像が表示されている場合は、おえかき画面へ遷移
         if (hasDrawing) {
             e.preventDefault();
             window.location.href = drawBtn.href + '?edit=1';
         } else {
-            // 画像がない場合はファイル選択
             inputFile.click();
         }
     });
@@ -175,6 +185,91 @@ document.addEventListener("DOMContentLoaded", () => {
         };
         reader.readAsDataURL(file);
     }
+
+    // フォーム送信処理（AJAX）
+    createForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        
+        // ボタンを無効化
+        submitButton.disabled = true;
+        submitButton.textContent = '送信中...';
+        
+        try {
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            console.log('Response data:', data); // デバッグ用
+            
+            if (data.success) {
+                // バトン達成があれば表示
+                if (data.baton_completed && data.baton_completed.count > 0) {
+                    console.log('Showing baton modal:', data.baton_completed); // デバッグ用
+                    showBatonModal(data.baton_completed.count, data.manga_id);
+                } else {
+                    console.log('No baton completed, redirecting...'); // デバッグ用
+                    // バトンがなければ直接遷移
+                    window.location.href = `/${data.manga_id}/`;
+                }
+            } else {
+                alert(data.error || 'エラーが発生しました');
+                submitButton.disabled = false;
+                submitButton.textContent = 'ページを追加';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('エラーが発生しました');
+            submitButton.disabled = false;
+            submitButton.textContent = 'ページを追加';
+        }
+    });
 });
+
+// バトン達成モーダルを表示
+function showBatonModal(count, mangaId) {
+    const modal = document.getElementById('baton-completed-modal');
+    const message = document.getElementById('baton-message');
+    message.textContent = `${count}件のバトンを達成しました`;
+    modal.classList.remove('hidden');
+    
+    // OKボタンでmanga_detailに遷移
+    window.batonMangaId = mangaId;
+}
+
+// モーダルを閉じる
+function closeBatonModal() {
+    window.location.href = `/${window.batonMangaId}/`;
+}
 </script>
+
+<style>
+@keyframes bounce-in {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-bounce-in {
+    animation: bounce-in 0.5s ease-out;
+}
+</style>
 {% endblock %}

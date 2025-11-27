@@ -1,11 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Manga, Page
-from .forms import MangaForm, PageForm
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import login
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Manga, Page, Baton, UserProfile
+from .forms import MangaForm, PageForm, SignupWithEmailForm, UserProfileForm, BatonPassForm, UsernameChangeForm
 import json
+
 
 def home(request):
     return render(request, 'manga/home.html')
+
 
 @login_required
 def create_manga(request):
@@ -20,9 +29,11 @@ def create_manga(request):
         form = MangaForm()
     return render(request, 'manga/create_manga.html', {'form': form})
 
+
 def manga_list(request):
     mangas = Manga.objects.all().order_by('-updated_at')
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
+
 
 def manga_detail(request, manga_id):
     manga = get_object_or_404(Manga, id=manga_id)
@@ -39,7 +50,6 @@ def manga_detail(request, manga_id):
     nodes = []
     edges = []
     for page in pages:
-        # CloudinaryFieldの場合、thumbnail.urlの代わりに直接変換URLを使用
         thumbnail_url = page.image.build_url(width=100, height=100, crop='fill') if page.image else ''
         
         nodes.append({
@@ -59,18 +69,19 @@ def manga_detail(request, manga_id):
         'edges': json.dumps(edges),
     })
 
+
 def page_viewer(request, page_id):
     """クリックしたページから、親→子（優先度順）までのリストを構築してビューアに渡す"""
     page = get_object_or_404(Page, id=page_id)
 
-    # 🔹 1. 親ページをすべて再帰的に遡る
+    # 1. 親ページをすべて再帰的に遡る
     ancestors = []
     current = page.parent
     while current:
         ancestors.insert(0, current)
         current = current.parent
 
-    # 🔹 2. 優先度の高い子を再帰的にたどる
+    # 2. 優先度の高い子を再帰的にたどる
     descendants = []
     def traverse_best_child(p):
         children = list(p.children.all())
@@ -82,13 +93,12 @@ def page_viewer(request, page_id):
 
     traverse_best_child(page)
 
-    # 🔹 3. リストを統合（親 → 現在 → 優先子孫）
+    # 3. リストを統合
     ordered_pages = ancestors + [page] + descendants
 
-    # 🔹 4. JSON 用データ
+    # 4. JSON用データ
     pages_data = []
     for p in ordered_pages:
-        # 子ページ（分岐先）も含める
         children_data = [
             {
                 "id": c.id,
@@ -109,10 +119,9 @@ def page_viewer(request, page_id):
             "children": children_data,
         })
 
-    # 現在のページのインデックスを特定
     current_index = ordered_pages.index(page)
 
-    # 🔹 5. ツリービュー用のノードとエッジデータを生成（manga_detailと同様）
+    # 5. ツリービュー用データ
     manga = page.manga
     all_pages = list(manga.pages.select_related('author', 'parent'))
 
@@ -151,8 +160,8 @@ def page_viewer(request, page_id):
         "current_page_id": page.id,
     })
 
+
 def page_branches_json(request, page_id):
-    from django.http import JsonResponse
     page = get_object_or_404(Page, id=page_id)
     children = page.children.all()
 
@@ -167,6 +176,7 @@ def page_branches_json(request, page_id):
     ]
     return JsonResponse({"branches": data})
 
+
 @login_required
 def create_page(request, manga_id, parent_id=None):
     manga = get_object_or_404(Manga, id=manga_id)
@@ -174,13 +184,35 @@ def create_page(request, manga_id, parent_id=None):
     if parent_id:
         parent = get_object_or_404(Page, id=parent_id, manga=manga)
 
-    # ✅ ルートページ制御：親なしで新規作成しようとしている場合
     if parent is None and manga.pages.filter(parent__isnull=True).exists():
-        # すでにルートがあるのでマンガ詳細にリダイレクト
         return redirect('manga_detail', manga_id=manga.id)
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                # ページを保存
+                page = form.save(commit=False)
+                page.manga = manga
+                page.author = request.user
+                if parent:
+                    page.parent = parent
+                page.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'manga_id': manga.id,
+                    'baton_completed': None  # create_pageではバトン達成なし
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'フォームの入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
         if form.is_valid():
             page = form.save(commit=False)
             page.manga = manga
@@ -198,6 +230,7 @@ def create_page(request, manga_id, parent_id=None):
         'parent': parent,
     })
 
+
 @login_required
 def continue_page(request, parent_id):
     parent = get_object_or_404(Page, id=parent_id)
@@ -205,6 +238,48 @@ def continue_page(request, parent_id):
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                # ページ保存前にバトンをチェック（signalで自動完了される前に）
+                completed_batons = Baton.objects.filter(
+                    page=parent,
+                    to_user=request.user,
+                    is_completed=False
+                )
+                
+                print(f"DEBUG: Checking batons for parent page {parent.id}, user {request.user.username}")
+                print(f"DEBUG: Found {completed_batons.count()} uncompleted batons")
+                
+                baton_completed = None
+                if completed_batons.exists():
+                    count = completed_batons.count()
+                    baton_completed = {
+                        'count': count,
+                        'page_id': parent.id  # 親ページのID
+                    }
+                    print(f"DEBUG: Baton completed: {baton_completed}")
+                
+                # ページを保存（この時点でsignalが発火してバトンが完了になる）
+                page = form.save(commit=False)
+                page.manga = manga
+                page.author = request.user
+                page.parent = parent
+                page.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'manga_id': manga.id,
+                    'baton_completed': baton_completed
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'フォームの入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
         if form.is_valid():
             page = form.save(commit=False)
             page.manga = manga
@@ -221,6 +296,7 @@ def continue_page(request, parent_id):
         'parent': parent,
     })
 
+
 @login_required
 def manga_editor(request, manga_id, parent_id=None):
     """おえかきエディタ画面"""
@@ -234,22 +310,218 @@ def manga_editor(request, manga_id, parent_id=None):
         'parent': parent,
     })
 
+
 def page_list(request):
     pages = Page.objects.all().order_by('-created_at')
     return render(request, 'manga/page_list.html', {'pages': pages})
 
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
 
 @require_POST
 def like_page(request, page_id):
-    """ページに1うぃーね追加（ログインしていてもしていなくても同じ扱い）"""
+    """ページに1うぃーね追加"""
     page = get_object_or_404(Page, id=page_id)
     page.likes += 1
     page.save(update_fields=["likes"])
     return JsonResponse({"likes": page.likes})
 
-from django.contrib.auth.views import LoginView
+
+# ========== バトンパス機能 ==========
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import Page, Baton
+from .forms import BatonPassForm
+
+@login_required
+def pass_baton(request, page_id):
+    """バトンパス処理"""
+    page = get_object_or_404(Page, id=page_id)
+    
+    if request.method == 'POST':
+        form = BatonPassForm(request.POST)
+        
+        # AJAX リクエストの場合
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            if form.is_valid():
+                to_user = form.cleaned_data['to_user']
+                
+                # 自分自身には送れない
+                if to_user == request.user:
+                    return JsonResponse({
+                        'success': False,
+                        'error': '自分自身にはバトンを渡せません'
+                    })
+                
+                # バトン作成
+                baton = Baton.objects.create(
+                    page=page,
+                    from_user=request.user,
+                    to_user=to_user
+                )
+                
+                # メール通知
+                try:
+                    if hasattr(to_user, 'profile') and to_user.profile.email:
+                        send_mail(
+                            subject=f'【リレーマンガ】{request.user.username}さんからバトンが届きました',
+                            message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n'
+                                    f'ページ: {page.display_title}\n'
+                                    f'マイページから確認してください。',
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[to_user.profile.email],
+                            fail_silently=True,
+                        )
+                except Exception as e:
+                    pass  # メール送信失敗しても処理は続行
+                
+                return JsonResponse({
+                    'success': True,
+                    'username': to_user.username
+                })
+            else:
+                # フォームエラー
+                errors = form.errors.get('to_user', ['入力内容に誤りがあります'])
+                return JsonResponse({
+                    'success': False,
+                    'error': errors[0] if errors else '入力内容に誤りがあります'
+                })
+        
+        # 通常のPOSTリクエスト（フォールバック）
+        if form.is_valid():
+            to_user = form.cleaned_data['to_user']
+            
+            if to_user != request.user:
+                Baton.objects.create(
+                    page=page,
+                    from_user=request.user,
+                    to_user=to_user
+                )
+                return redirect('page_viewer', page_id=page.id)
+    else:
+        form = BatonPassForm()
+    
+    return render(request, 'manga/pass_baton.html', {
+        'form': form,
+        'page': page,
+    })
+
+
+@login_required
+def my_page(request):
+    """マイページ"""
+    user = request.user
+    
+    # 自分が描いたページ
+    my_pages = Page.objects.filter(author=user).select_related('manga').order_by('-created_at')
+    
+    # 未達成バトンをページごとにグループ化
+    pending_batons_raw = Baton.objects.filter(
+        to_user=user,
+        is_completed=False
+    ).select_related('page__manga', 'from_user').order_by('-created_at')
+    
+    # ページIDごとにグループ化
+    pending_grouped = {}
+    for baton in pending_batons_raw:
+        page_id = baton.page.id
+        if page_id not in pending_grouped:
+            pending_grouped[page_id] = {
+                'page': baton.page,
+                'senders': [],
+                'latest_date': baton.created_at,
+                'count': 0
+            }
+        pending_grouped[page_id]['senders'].append(baton.from_user.username)
+        pending_grouped[page_id]['count'] += 1
+        if baton.created_at > pending_grouped[page_id]['latest_date']:
+            pending_grouped[page_id]['latest_date'] = baton.created_at
+    
+    # リスト形式に変換
+    pending_batons = []
+    for group_data in pending_grouped.values():
+        pending_batons.append({
+            'page': group_data['page'],
+            'first_sender': group_data['senders'][0],
+            'count': group_data['count'],
+            'latest_date': group_data['latest_date']
+        })
+    
+    # 最新順にソート
+    pending_batons.sort(key=lambda x: x['latest_date'], reverse=True)
+    
+    # 達成済みバトンをページごとにグループ化
+    completed_batons_raw = Baton.objects.filter(
+        to_user=user,
+        is_completed=True
+    ).select_related('page__manga', 'from_user').order_by('-created_at')
+    
+    # ページIDごとにグループ化
+    completed_grouped = {}
+    for baton in completed_batons_raw:
+        page_id = baton.page.id
+        if page_id not in completed_grouped:
+            completed_grouped[page_id] = {
+                'page': baton.page,
+                'senders': [],
+                'latest_date': baton.created_at,
+                'count': 0
+            }
+        completed_grouped[page_id]['senders'].append(baton.from_user.username)
+        completed_grouped[page_id]['count'] += 1
+        if baton.created_at > completed_grouped[page_id]['latest_date']:
+            completed_grouped[page_id]['latest_date'] = baton.created_at
+    
+    # リスト形式に変換
+    completed_batons = []
+    for group_data in completed_grouped.values():
+        completed_batons.append({
+            'page': group_data['page'],
+            'first_sender': group_data['senders'][0],
+            'count': group_data['count'],
+            'latest_date': group_data['latest_date']
+        })
+    
+    # 最新順にソート
+    completed_batons.sort(key=lambda x: x['latest_date'], reverse=True)
+    
+    # プロフィールフォーム
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    
+    # ユーザー名変更フォーム
+    username_form = UsernameChangeForm(user=user)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'update_profile':
+            form = UserProfileForm(request.POST, instance=profile)
+            if form.is_valid():
+                form.save()
+                return redirect('my_page')
+        
+        elif action == 'change_username':
+            username_form = UsernameChangeForm(request.POST, user=user)
+            if username_form.is_valid():
+                user.username = username_form.cleaned_data['new_username']
+                user.save()
+                return redirect('my_page')
+        
+        profile_form = UserProfileForm(instance=profile)
+    else:
+        profile_form = UserProfileForm(instance=profile)
+    
+    return render(request, 'manga/my_page.html', {
+        'my_pages': my_pages,
+        'pending_batons': pending_batons,
+        'completed_batons': completed_batons,
+        'profile_form': profile_form,
+        'username_form': username_form,
+    })
+
+# ========== 認証関連 ==========
 
 class CustomLoginView(LoginView):
     template_name = "registration/login.html"
@@ -258,16 +530,22 @@ class CustomLoginView(LoginView):
         next_url = self.request.GET.get("next") or self.request.POST.get("next")
         return next_url or super().get_success_url()
 
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
 
 def signup(request):
     if request.method == "POST":
-        form = UserCreationForm(request.POST)
+        form = SignupWithEmailForm(request.POST)
         if form.is_valid():
             user = form.save()
+            
+            # メールアドレスが入力されていればプロフィールに保存
+            email = form.cleaned_data.get('email')
+            if email:
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.email = email
+                profile.save()
+            
             login(request, user)
             return redirect("home")
     else:
-        form = UserCreationForm()
+        form = SignupWithEmailForm()
     return render(request, "registration/signup.html", {"form": form})
