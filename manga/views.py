@@ -367,11 +367,17 @@ def pass_baton(request, page_id):
                 try:
                     if hasattr(to_user, 'profile') and to_user.profile.email:
                         print(f"DEBUG: Attempting to send email to {to_user.profile.email}")
+                        
+                        # マイページURLを生成
+                        my_page_url = request.build_absolute_uri('/my-page/')
+                        
                         send_mail(
                             subject=f'【リレーマンガ】{request.user.username}さんからバトンが届きました',
-                            message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n'
-                                    f'ページ: {page.display_title}\n'
-                                    f'マイページから確認してください。',
+                            message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n\n'
+                                    f'ページ: {page.display_title}\n\n'
+                                    f'マイページから確認してください：\n'
+                                    f'{my_page_url}\n\n'
+                                    f'続きを描いてみませんか？',
                             from_email=settings.DEFAULT_FROM_EMAIL,
                             recipient_list=[to_user.profile.email],
                             fail_silently=False,  # エラーを表示
