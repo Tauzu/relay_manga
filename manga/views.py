@@ -363,8 +363,10 @@ def pass_baton(request, page_id):
                 )
                 
                 # メール通知
+                email_sent = False
                 try:
                     if hasattr(to_user, 'profile') and to_user.profile.email:
+                        print(f"DEBUG: Attempting to send email to {to_user.profile.email}")
                         send_mail(
                             subject=f'【リレーマンガ】{request.user.username}さんからバトンが届きました',
                             message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n'
@@ -372,10 +374,15 @@ def pass_baton(request, page_id):
                                     f'マイページから確認してください。',
                             from_email=settings.DEFAULT_FROM_EMAIL,
                             recipient_list=[to_user.profile.email],
-                            fail_silently=True,
+                            fail_silently=False,  # エラーを表示
                         )
+                        email_sent = True
+                        print(f"DEBUG: Email sent successfully to {to_user.profile.email}")
+                    else:
+                        print(f"DEBUG: User {to_user.username} has no email address registered")
                 except Exception as e:
-                    pass  # メール送信失敗しても処理は続行
+                    print(f"DEBUG: Email sending failed: {str(e)}")
+                    # メール送信失敗してもバトンパス自体は成功させる
                 
                 return JsonResponse({
                     'success': True,
@@ -407,7 +414,6 @@ def pass_baton(request, page_id):
         'form': form,
         'page': page,
     })
-
 
 @login_required
 def my_page(request):
