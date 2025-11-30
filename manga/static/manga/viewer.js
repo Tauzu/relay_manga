@@ -36,6 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
         likeForm.action = page.like_url;
         continueLink.href = `/page/${page.id}/continue/`;
 
+        // バトンパスリンクを更新
+        const batonPassLink = document.getElementById("baton-pass-link");
+        if (batonPassLink) {
+            batonPassLink.href = `/page/${page.id}/pass-baton/`;
+        }
+
         const counter = document.getElementById("page-counter");
         counter.textContent = `${newIndex + 1} / ${pages.length}`;
 

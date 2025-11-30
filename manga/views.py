@@ -363,19 +363,32 @@ def pass_baton(request, page_id):
                 )
                 
                 # メール通知
+                email_sent = False
                 try:
                     if hasattr(to_user, 'profile') and to_user.profile.email:
+                        print(f"DEBUG: Attempting to send email to {to_user.profile.email}")
+                        
+                        # マイページURLを生成
+                        my_page_url = request.build_absolute_uri('/my-page/')
+                        
                         send_mail(
                             subject=f'【リレーマンガ】{request.user.username}さんからバトンが届きました',
-                            message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n'
-                                    f'ページ: {page.display_title}\n'
-                                    f'マイページから確認してください。',
+                            message=f'{request.user.username}さんから「{page.manga.title}」のバトンが届きました。\n\n'
+                                    f'ページ: {page.display_title}\n\n'
+                                    f'マイページから確認してください：\n'
+                                    f'{my_page_url}\n\n'
+                                    f'続きを描いてみませんか？',
                             from_email=settings.DEFAULT_FROM_EMAIL,
                             recipient_list=[to_user.profile.email],
-                            fail_silently=True,
+                            fail_silently=False,  # エラーを表示
                         )
+                        email_sent = True
+                        print(f"DEBUG: Email sent successfully to {to_user.profile.email}")
+                    else:
+                        print(f"DEBUG: User {to_user.username} has no email address registered")
                 except Exception as e:
-                    pass  # メール送信失敗しても処理は続行
+                    print(f"DEBUG: Email sending failed: {str(e)}")
+                    # メール送信失敗してもバトンパス自体は成功させる
                 
                 return JsonResponse({
                     'success': True,
@@ -407,7 +420,6 @@ def pass_baton(request, page_id):
         'form': form,
         'page': page,
     })
-
 
 @login_required
 def my_page(request):
