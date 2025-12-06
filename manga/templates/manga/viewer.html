@@ -292,7 +292,7 @@
 
         <!-- バトンパスボタン（ログイン時のみ表示） -->
         {% if user.is_authenticated %}
-        <a href="{% url 'pass_baton' first_page.id %}"
+        <a id="baton-pass-link" href="{% url 'pass_baton' first_page.id %}"
            class="w-full sm:w-auto flex justify-center items-center gap-2 px-5 py-3 bg-orange-500 text-white rounded-lg font-semibold text-lg hover:bg-orange-600 transition">
             🏃 バトンをパス
         </a>

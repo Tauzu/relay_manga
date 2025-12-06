@@ -39,11 +39,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
     const savedDrawing = sessionStorage.getItem('mangaDrawing');
     if (savedDrawing && isEditMode) {
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(savedDrawing, function() {
+            // コマ枠を固定
+            lockPanelFrames();
             canvas.renderAll();
             panelsApplied = true;
             switchToDrawingMode();
             fitCanvasToScreen();
+            isLoadingHistory = false;  // フラグOFF
+            // 再編集時は履歴に初期状態を保存
+            saveState();
         });
     } else {
         if (!isEditMode) {
@@ -51,6 +57,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         updatePanelPreview();
         fitCanvasToScreen();
+        // 新規作成時も初期状態を保存
+        saveState();
     }
 
     setupEventListeners();
@@ -291,6 +299,9 @@ function updatePanelPreview() {
         }
     }
     canvas.renderAll();
+    
+    // プレビュー更新時は履歴に保存しない
+    // （コマ割り適用ボタンを押した時のみ保存）
 }
 
 // コマ割り適用
@@ -306,6 +317,9 @@ document.getElementById('apply-panels').addEventListener('click', function() {
     const usableHeight = canvas.height - (margin * (rows + 1));
     const panelWidth = usableWidth / cols;
     const panelHeight = usableHeight / rows;
+    
+    // イベント一時停止フラグ
+    canvas._isAddingPanels = true;
     
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
@@ -324,14 +338,19 @@ document.getElementById('apply-panels').addEventListener('click', function() {
                 evented: false,
                 lockMovementX: true,
                 lockMovementY: true,
-                hasControls: false
+                hasControls: false,
+                isPanelFrame: true  // コマ枠として識別するフラグ
             });
             canvas.add(rect);
         }
     }
     
     canvas.renderAll();
+    
+    // フラグを解除してから保存
+    canvas._isAddingPanels = false;
     saveState();
+    
     panelsApplied = true;
     switchToDrawingMode();
 });
@@ -389,8 +408,19 @@ function setupEventListeners() {
     
     // Fabricイベント
     canvas.on('object:modified', saveState);
+    
+    // 自由描画完了時のみ履歴を保存
+    canvas.on('path:created', function() {
+        saveState();
+    });
+    
+    // その他のオブジェクト追加時（図形・テキストなど）
+    // ※自由描画（path）は上記で処理済みなので除外
+    // ※コマ枠追加中も除外
     canvas.on('object:added', function(e) {
-        if (e.target && !e.target.isTemporary) {
+        if (canvas._isAddingPanels) return;  // コマ枠追加中はスキップ
+        
+        if (e.target && !e.target.isTemporary && e.target.type !== 'path' && !e.target.isPanelFrame) {
             saveState();
         }
     });
@@ -575,39 +605,81 @@ function closeTextInput() {
 // 履歴管理
 let history = [];
 let historyStep = -1;
+let isLoadingHistory = false;  // Undo/Redo実行中フラグ
 
 function saveState() {
-    historyStep++;
-    if (historyStep < history.length) {
-        history.length = historyStep;
+    // Undo/Redo実行中は保存しない
+    if (isLoadingHistory) return;
+    
+    // 現在の位置より後ろの履歴を削除
+    if (historyStep < history.length - 1) {
+        history = history.slice(0, historyStep + 1);
     }
-    history.push(JSON.stringify(canvas.toJSON()));
+    
+    // カスタムプロパティ（isPanelFrame）も含めて保存
+    history.push(JSON.stringify(canvas.toJSON(['isPanelFrame'])));
+    historyStep = history.length - 1;
+    
     updateHistoryButtons();
 }
 
 function undo() {
     if (historyStep > 0) {
+        console.log('Undo: before', historyStep);
         historyStep--;
+        console.log('Undo: after', historyStep);
+        
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
+            // コマ枠を再度固定
+            lockPanelFrames();
             canvas.renderAll();
+            isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
         });
+    } else {
+        console.log('Undo: cannot undo, historyStep=', historyStep);
     }
 }
 
 function redo() {
     if (historyStep < history.length - 1) {
+        console.log('Redo: before', historyStep);
         historyStep++;
+        console.log('Redo: after', historyStep);
+        
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
+            // コマ枠を再度固定
+            lockPanelFrames();
             canvas.renderAll();
+            isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
         });
+    } else {
+        console.log('Redo: cannot redo, historyStep=', historyStep, 'length=', history.length);
     }
 }
 
 function updateHistoryButtons() {
     document.getElementById('undo-btn').disabled = historyStep <= 0;
     document.getElementById('redo-btn').disabled = historyStep >= history.length - 1;
+    
+    // デバッグ用（本番環境では削除可能）
+    console.log(`History: step=${historyStep}, length=${history.length}, undo=${historyStep > 0}, redo=${historyStep < history.length - 1}`);
+}
+
+// コマ枠を固定する関数
+function lockPanelFrames() {
+    canvas.getObjects().forEach(obj => {
+        if (obj.isPanelFrame) {
+            obj.selectable = false;
+            obj.evented = false;
+            obj.lockMovementX = true;
+            obj.lockMovementY = true;
+            obj.hasControls = false;
+        }
+    });
 }
 
 // 選択オブジェクト削除
@@ -628,8 +700,12 @@ function clearCanvas() {
         canvas.backgroundColor = '#ffffff';
         history = [];
         historyStep = -1;
-        updatePanelPreview();
         panelsApplied = false;
+        
+        updatePanelPreview();
+        // クリア後の初期状態を保存
+        saveState();
+        
         document.getElementById('step1-section').style.display = 'flex';
         document.getElementById('step2-section').style.display = 'none';
         document.getElementById('brush-section').style.display = 'none';
@@ -640,7 +716,8 @@ function clearCanvas() {
 
 // 保存
 function saveImage() {
-    const canvasData = JSON.stringify(canvas.toJSON());
+    // カスタムプロパティも含めて保存
+    const canvasData = JSON.stringify(canvas.toJSON(['isPanelFrame']));
     sessionStorage.setItem('mangaDrawing', canvasData);
     
     const dataURL = canvas.toDataURL('image/png');
