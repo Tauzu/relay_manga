@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const savedDrawing = sessionStorage.getItem('mangaDrawing');
     if (savedDrawing && isEditMode) {
         canvas.loadFromJSON(savedDrawing, function() {
+            // コマ枠を固定
+            lockPanelFrames();
             canvas.renderAll();
             panelsApplied = true;
             switchToDrawingMode();
@@ -324,7 +326,8 @@ document.getElementById('apply-panels').addEventListener('click', function() {
                 evented: false,
                 lockMovementX: true,
                 lockMovementY: true,
-                hasControls: false
+                hasControls: false,
+                isPanelFrame: true  // コマ枠として識別するフラグ
             });
             canvas.add(rect);
         }
@@ -581,7 +584,8 @@ function saveState() {
     if (historyStep < history.length) {
         history.length = historyStep;
     }
-    history.push(JSON.stringify(canvas.toJSON()));
+    // カスタムプロパティ（isPanelFrame）も含めて保存
+    history.push(JSON.stringify(canvas.toJSON(['isPanelFrame'])));
     updateHistoryButtons();
 }
 
@@ -589,6 +593,8 @@ function undo() {
     if (historyStep > 0) {
         historyStep--;
         canvas.loadFromJSON(history[historyStep], function() {
+            // コマ枠を再度固定
+            lockPanelFrames();
             canvas.renderAll();
             updateHistoryButtons();
         });
@@ -599,6 +605,8 @@ function redo() {
     if (historyStep < history.length - 1) {
         historyStep++;
         canvas.loadFromJSON(history[historyStep], function() {
+            // コマ枠を再度固定
+            lockPanelFrames();
             canvas.renderAll();
             updateHistoryButtons();
         });
@@ -608,6 +616,19 @@ function redo() {
 function updateHistoryButtons() {
     document.getElementById('undo-btn').disabled = historyStep <= 0;
     document.getElementById('redo-btn').disabled = historyStep >= history.length - 1;
+}
+
+// コマ枠を固定する関数
+function lockPanelFrames() {
+    canvas.getObjects().forEach(obj => {
+        if (obj.isPanelFrame) {
+            obj.selectable = false;
+            obj.evented = false;
+            obj.lockMovementX = true;
+            obj.lockMovementY = true;
+            obj.hasControls = false;
+        }
+    });
 }
 
 // 選択オブジェクト削除
@@ -640,7 +661,8 @@ function clearCanvas() {
 
 // 保存
 function saveImage() {
-    const canvasData = JSON.stringify(canvas.toJSON());
+    // カスタムプロパティも含めて保存
+    const canvasData = JSON.stringify(canvas.toJSON(['isPanelFrame']));
     sessionStorage.setItem('mangaDrawing', canvasData);
     
     const dataURL = canvas.toDataURL('image/png');
