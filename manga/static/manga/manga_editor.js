@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
     const savedDrawing = sessionStorage.getItem('mangaDrawing');
     if (savedDrawing && isEditMode) {
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(savedDrawing, function() {
             // コマ枠を固定
             lockPanelFrames();
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
             panelsApplied = true;
             switchToDrawingMode();
             fitCanvasToScreen();
+            isLoadingHistory = false;  // フラグOFF
             // 再編集時は履歴に初期状態を保存
             saveState();
         });
@@ -603,8 +605,12 @@ function closeTextInput() {
 // 履歴管理
 let history = [];
 let historyStep = -1;
+let isLoadingHistory = false;  // Undo/Redo実行中フラグ
 
 function saveState() {
+    // Undo/Redo実行中は保存しない
+    if (isLoadingHistory) return;
+    
     // 現在の位置より後ろの履歴を削除
     if (historyStep < history.length - 1) {
         history = history.slice(0, historyStep + 1);
@@ -622,10 +628,13 @@ function undo() {
         console.log('Undo: before', historyStep);
         historyStep--;
         console.log('Undo: after', historyStep);
+        
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
             // コマ枠を再度固定
             lockPanelFrames();
             canvas.renderAll();
+            isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
         });
     } else {
@@ -638,10 +647,13 @@ function redo() {
         console.log('Redo: before', historyStep);
         historyStep++;
         console.log('Redo: after', historyStep);
+        
+        isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
             // コマ枠を再度固定
             lockPanelFrames();
             canvas.renderAll();
+            isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
         });
     } else {
