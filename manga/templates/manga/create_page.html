@@ -146,17 +146,17 @@
                 </div>
 
                 <!-- ボタングループ -->
-                <div class="w-full space-y-3 mb-4">
-                    <!-- おえかきボタン -->
+                <div class="flex w-full mb-4 shadow-sm">
+                    
                     <a id="draw-btn" href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
-                       class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base text-center block">
-                        🖌️ おえかきする
+                    class="flex-1 bg-purple-500 text-white py-2 font-semibold hover:bg-purple-600 transition text-sm sm:text-base text-center block
+                            {% if parent %}rounded-l{% else %}rounded{% endif %}">
+                    🖌️ おえかき
                     </a>
 
-                    <!-- AIで作成ボタン（親ページがある場合のみ表示） -->
                     {% if parent %}
                     <button type="button" onclick="openAIModal()" 
-                            class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded font-semibold hover:from-blue-600 hover:to-purple-600 transition text-sm sm:text-base">
+                            class="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-r font-semibold hover:from-blue-600 hover:to-purple-600 transition text-sm sm:text-base border-l border-white/20">
                         🤖 AIで作成
                     </button>
                     {% endif %}
