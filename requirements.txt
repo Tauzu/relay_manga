@@ -14,4 +14,4 @@ django-cloudinary-storage==0.3.0
 python-decouple==3.8
 
 # AI画像生成用（gpt-image-1.5）
-openai==1.54.0
+openai==2.14.0
