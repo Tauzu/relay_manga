@@ -16,6 +16,66 @@
     </div>
 </div>
 
+<!-- AI画像生成モーダル -->
+<div id="ai-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold">🤖 AIで画像生成</h3>
+                <button onclick="closeAIModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block font-semibold mb-2">どんな続きにしたいですか？</label>
+                <textarea id="ai-prompt" 
+                          class="w-full border rounded px-3 py-2 h-32 focus:outline-none focus:ring focus:ring-blue-300"
+                          placeholder="例: 主人公が驚いた表情で振り返っている場面"></textarea>
+                <p class="text-sm text-gray-600 mt-2">
+                    💡 ヒント: 具体的な構図や感情、アクションを書くと良い結果が得られます
+                </p>
+            </div>
+            
+            <!-- 参照オプション -->
+            <div class="mb-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="use-reference" checked class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-sm font-semibold">前のページ画像を参考にする</span>
+                </label>
+                <p class="text-xs text-gray-500 mt-1 ml-6">
+                    キャラクターやスタイルの一貫性を保ちます（推奨）
+                </p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="generateWithAI()" 
+                        id="generate-btn"
+                        class="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition">
+                    🎨 生成する
+                </button>
+                <button onclick="closeAIModal()" 
+                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    キャンセル
+                </button>
+            </div>
+            
+            <!-- 生成中の表示 -->
+            <div id="ai-loading" class="hidden mt-4 text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <p class="mt-2 text-gray-600">AI画像生成中...（30秒〜1分ほどかかります）</p>
+            </div>
+            
+            <!-- エラー表示 -->
+            <div id="ai-error" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-red-600" id="ai-error-message"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="max-w-6xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow">
     <h2 class="text-2xl font-bold text-center mb-8">新しいページを追加</h2>
 
@@ -61,11 +121,22 @@
                     <input id="id_image" name="image" type="file" accept="image/*" class="hidden">
                 </div>
 
-                <!-- おえかきボタン -->
-                <a id="draw-btn" href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
-                   class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base mb-4 text-center block">
-                    🖌️ おえかきする
-                </a>
+                <!-- ボタングループ -->
+                <div class="w-full space-y-3 mb-4">
+                    <!-- おえかきボタン -->
+                    <a id="draw-btn" href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
+                       class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base text-center block">
+                        🖌️ おえかきする
+                    </a>
+
+                    <!-- AIで作成ボタン（親ページがある場合のみ表示） -->
+                    {% if parent %}
+                    <button type="button" onclick="openAIModal()" 
+                            class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded font-semibold hover:from-blue-600 hover:to-purple-600 transition text-sm sm:text-base">
+                        🤖 AIで作成
+                    </button>
+                    {% endif %}
+                </div>
 
                 <!-- タイトル入力 -->
                 <label class="block font-semibold mb-1 text-gray-700 self-start text-sm sm:text-base">ページタイトル（任意）</label>
@@ -207,15 +278,15 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             
             const data = await response.json();
-            console.log('Response data:', data); // デバッグ用
+            console.log('Response data:', data);
             
             if (data.success) {
                 // バトン達成があれば表示
                 if (data.baton_completed && data.baton_completed.count > 0) {
-                    console.log('Showing baton modal:', data.baton_completed); // デバッグ用
+                    console.log('Showing baton modal:', data.baton_completed);
                     showBatonModal(data.baton_completed.count, data.manga_id);
                 } else {
-                    console.log('No baton completed, redirecting...'); // デバッグ用
+                    console.log('No baton completed, redirecting...');
                     // バトンがなければ直接遷移
                     window.location.href = `/${data.manga_id}/`;
                 }
@@ -240,13 +311,99 @@ function showBatonModal(count, mangaId) {
     message.textContent = `${count}件のバトンを達成しました`;
     modal.classList.remove('hidden');
     
-    // OKボタンでmanga_detailに遷移
     window.batonMangaId = mangaId;
 }
 
 // モーダルを閉じる
 function closeBatonModal() {
     window.location.href = `/${window.batonMangaId}/`;
+}
+
+// === AI画像生成機能 ===
+
+function openAIModal() {
+    document.getElementById('ai-modal').classList.remove('hidden');
+    document.getElementById('ai-prompt').focus();
+}
+
+function closeAIModal() {
+    document.getElementById('ai-modal').classList.add('hidden');
+    document.getElementById('ai-error').classList.add('hidden');
+    document.getElementById('ai-loading').classList.add('hidden');
+    document.getElementById('ai-prompt').value = '';
+}
+
+async function generateWithAI() {
+    const prompt = document.getElementById('ai-prompt').value.trim();
+    const useReference = document.getElementById('use-reference').checked;
+    
+    if (!prompt) {
+        alert('プロンプトを入力してください');
+        return;
+    }
+    
+    const generateBtn = document.getElementById('generate-btn');
+    const loading = document.getElementById('ai-loading');
+    const errorDiv = document.getElementById('ai-error');
+    const errorMessage = document.getElementById('ai-error-message');
+    
+    // ローディング表示
+    generateBtn.disabled = true;
+    generateBtn.textContent = '生成中...';
+    loading.classList.remove('hidden');
+    errorDiv.classList.add('hidden');
+    
+    try {
+        {% if parent %}
+        const parentId = {{ parent.id }};
+        {% else %}
+        throw new Error('親ページが見つかりません');
+        {% endif %}
+        
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        formData.append('use_reference', useReference ? 'true' : 'false');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        const response = await fetch(`/page/${parentId}/generate-ai/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 生成された画像をプレビューエリアに表示
+            const dropInner = document.getElementById('drop-inner');
+            dropInner.innerHTML = `<img src="${data.image_data}" class="object-contain w-full h-full" alt="AI生成画像">`;
+            
+            // 画像をFileInputに設定
+            const blob = await (await fetch(data.image_data)).blob();
+            const file = new File([blob], "ai-generated.png", { type: "image/png" });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            document.getElementById('id_image').files = dataTransfer.files;
+            
+            // モーダルを閉じる
+            closeAIModal();
+            
+            alert('✨ AI画像生成が完了しました！');
+        } else {
+            throw new Error(data.error || '画像生成に失敗しました');
+        }
+        
+    } catch (error) {
+        console.error('AI生成エラー:', error);
+        errorMessage.textContent = error.message || 'エラーが発生しました';
+        errorDiv.classList.remove('hidden');
+    } finally {
+        generateBtn.disabled = false;
+        generateBtn.textContent = '🎨 生成する';
+        loading.classList.add('hidden');
+    }
 }
 </script>
 

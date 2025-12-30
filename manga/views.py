@@ -561,3 +561,113 @@ def signup(request):
     else:
         form = SignupWithEmailForm()
     return render(request, "registration/signup.html", {"form": form})
+
+# views.py に追加する完全版AI画像生成機能
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.conf import settings
+from openai import OpenAI
+import base64
+import urllib.request
+import io
+import logging
+
+logger = logging.getLogger(__name__)
+
+@login_required
+@require_POST
+def generate_page_with_ai(request, parent_id):
+    """
+    AI画像生成API
+    use_reference=trueの場合は前のページ画像を参考にする
+    """
+    try:
+        parent = get_object_or_404(Page, id=parent_id)
+        prompt = request.POST.get('prompt', '')
+        use_reference = request.POST.get('use_reference', 'false') == 'true'
+        
+        if not prompt:
+            return JsonResponse({
+                'success': False,
+                'error': 'プロンプトを入力してください'
+            }, status=400)
+        
+        # OpenAI APIキーのチェック
+        if not settings.OPENAI_API_KEY:
+            return JsonResponse({
+                'success': False,
+                'error': 'OpenAI APIキーが設定されていません'
+            }, status=500)
+        
+        # OpenAIクライアントの初期化
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
+        logger.info(f"AI画像生成開始: parent_id={parent_id}, prompt={prompt}, use_reference={use_reference}")
+        
+        # プロンプトの構築
+        full_prompt = f"""これは漫画の続きのページです。
+前のページの続きとして自然につながるように描いてください。
+
+ユーザーの指示: {prompt}
+
+要件:
+- 正方形の画像（1024x1024px）
+- マンガ風のスタイル
+- 前のページとの連続性を保つ
+- セリフやテキストは含めない（吹き出しの枠だけはOK）"""
+        
+        if use_reference:
+            # 前のページ画像を参考にする（Edit API）
+            parent_image_url = parent.image.url
+            
+            # Cloudinary URLの場合は絶対URLに変換
+            if not parent_image_url.startswith('http'):
+                parent_image_url = request.build_absolute_uri(parent_image_url)
+            
+            logger.info(f"参照画像URL: {parent_image_url}")
+            
+            # 画像をダウンロード
+            with urllib.request.urlopen(parent_image_url) as response:
+                image_data = response.read()
+            
+            # バイト形式で用意
+            image_file = io.BytesIO(image_data)
+            image_file.name = 'reference.png'
+            
+            # Edit APIで生成（前のページを参考）
+            response = client.images.edit(
+                model="gpt-image-1.5",
+                image=[image_file],
+                prompt=full_prompt,
+                size="1024x1024",
+                quality="high",
+                input_fidelity="high",  # 高精度で参照
+            )
+        else:
+            # 通常の生成（Generation API）
+            response = client.images.generate(
+                model="gpt-image-1.5",
+                prompt=full_prompt,
+                size="1024x1024",
+                quality="high",
+                response_format="b64_json",
+            )
+        
+        # 生成された画像のbase64データを取得
+        image_base64 = response.data[0].b64_json
+        
+        logger.info(f"AI画像生成成功")
+        
+        return JsonResponse({
+            'success': True,
+            'image_data': f'data:image/png;base64,{image_base64}',
+            'message': 'AI画像生成が完了しました'
+        })
+        
+    except Exception as e:
+        logger.error(f"AI画像生成エラー: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'エラーが発生しました: {str(e)}'
+        }, status=500)
