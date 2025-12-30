@@ -614,7 +614,7 @@ def generate_page_with_ai(request, parent_id):
 要件:
 - 正方形の画像（1024x1024px）
 - マンガ風のスタイル
-- 前のページとの連続性を保つ
+- 前のページの画風や連続性を保つ
 - セリフやテキストは含めない（吹き出しの枠だけはOK）"""
         
         if use_reference:
