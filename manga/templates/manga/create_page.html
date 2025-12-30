@@ -146,17 +146,17 @@
                 </div>
 
                 <!-- ボタングループ -->
-                <div class="flex w-full mb-4 shadow-sm">
-                    
+                <div class="w-full space-y-3 mb-4">
+                    <!-- おえかきボタン -->
                     <a id="draw-btn" href="{% if parent %}{% url 'manga_editor_with_parent' manga.id parent.id %}{% else %}{% url 'manga_editor' manga.id %}{% endif %}"
-                    class="flex-1 bg-purple-500 text-white py-2 font-semibold hover:bg-purple-600 transition text-sm sm:text-base text-center block
-                            {% if parent %}rounded-l{% else %}rounded{% endif %}">
-                    🖌️ おえかき
+                       class="w-full bg-purple-500 text-white py-2 rounded font-semibold hover:bg-purple-600 transition text-sm sm:text-base text-center block">
+                        🖌️ おえかきする
                     </a>
 
+                    <!-- AIで作成ボタン（親ページがある場合のみ表示） -->
                     {% if parent %}
                     <button type="button" onclick="openAIModal()" 
-                            class="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded-r font-semibold hover:from-blue-600 hover:to-purple-600 transition text-sm sm:text-base border-l border-white/20">
+                            class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-2 rounded font-semibold hover:from-blue-600 hover:to-purple-600 transition text-sm sm:text-base">
                         🤖 AIで作成
                     </button>
                     {% endif %}
@@ -438,13 +438,29 @@ async function generateWithAI() {
         formData.append('use_reference', useReference ? 'true' : 'false');
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
         
+        // タイムアウト設定（3分）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
+        
         const response = await fetch(`/page/${parentId}/generate-ai/`, {
             method: 'POST',
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
-            }
+            },
+            signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
+        // レスポンスの内容を確認
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // HTMLエラーページが返ってきた場合
+            const text = await response.text();
+            console.error('予期しないレスポンス:', text.substring(0, 500));
+            throw new Error('サーバーエラーが発生しました。しばらく待ってから再度お試しください。');
+        }
         
         const data = await response.json();
         
@@ -467,7 +483,15 @@ async function generateWithAI() {
         
     } catch (error) {
         console.error('AI生成エラー:', error);
-        errorMessage.textContent = error.message || 'エラーが発生しました';
+        
+        let message = 'エラーが発生しました';
+        if (error.name === 'AbortError') {
+            message = '処理がタイムアウトしました。もう一度お試しください。';
+        } else if (error.message) {
+            message = error.message;
+        }
+        
+        errorMessage.textContent = message;
         errorDiv.classList.remove('hidden');
         loading.classList.add('hidden');
         inputArea.classList.remove('hidden');
