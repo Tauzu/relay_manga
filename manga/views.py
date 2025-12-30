@@ -651,7 +651,6 @@ def generate_page_with_ai(request, parent_id):
                 prompt=full_prompt,
                 size="1024x1024",
                 quality="high",
-                response_format="b64_json",
             )
         
         # 生成された画像のbase64データを取得
