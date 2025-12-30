@@ -113,6 +113,9 @@ else:
 
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@relay-manga.com')
 
+# OpenAI API設定
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+
 # 本番環境設定の読み込み
 if os.environ.get('RENDER'):
     from .production_settings import *

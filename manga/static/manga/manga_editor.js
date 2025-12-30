@@ -19,6 +19,7 @@ const ZOOM_SPEED = 0.05;
 // URLパラメータで再編集モードかどうかを判定
 const urlParams = new URLSearchParams(window.location.search);
 const isEditMode = urlParams.has('edit');
+const isAIMode = urlParams.has('ai');  // AI生成画像モード
 
 // 初期化
 document.addEventListener('DOMContentLoaded', function() {
@@ -36,6 +37,66 @@ document.addEventListener('DOMContentLoaded', function() {
         cornerSize: 10
     });
 
+    // AI生成画像モードの場合
+    if (isAIMode) {
+        const aiImage = sessionStorage.getItem('aiGeneratedImage');
+        if (aiImage) {
+            console.log('AI画像モード: 画像を読み込み中...');
+            isLoadingHistory = true;
+            
+            // AI画像を背景として読み込む
+            fabric.Image.fromURL(aiImage, function(img) {
+                console.log('AI画像読み込み完了');
+                
+                // キャンバスサイズに合わせてスケール調整
+                const scale = Math.min(
+                    canvas.width / img.width,
+                    canvas.height / img.height
+                );
+                
+                img.set({
+                    scaleX: scale,
+                    scaleY: scale,
+                    left: (canvas.width - img.width * scale) / 2,
+                    top: (canvas.height - img.height * scale) / 2,
+                    selectable: false,
+                    evented: false,
+                    lockMovementX: true,
+                    lockMovementY: true,
+                    lockRotation: true,
+                    lockScalingFlip: true,
+                    hasControls: false,
+                    hasBorders: true,
+                });
+                
+                canvas.add(img);
+                canvas.renderAll();
+                
+                // 再編集モードと同じ処理
+                panelsApplied = true;
+                switchToDrawingMode();
+                fitCanvasToScreen();
+                isLoadingHistory = false;
+                
+                // 初期状態を保存（再編集モードと同じ）
+                saveState();
+                
+                console.log('AI画像モード初期化完了');
+                console.log('描画ツール有効化: panelsApplied=', panelsApplied);
+                console.log('ツールバー表示: step2-section=', document.getElementById('step2-section').style.display);
+                
+                // AI画像をセッションから削除（一度使ったら削除）
+                sessionStorage.removeItem('aiGeneratedImage');
+            }, null, { crossOrigin: 'anonymous' });
+            
+            setupEventListeners();
+            setupZoomAndPan();
+            return;
+        } else {
+            console.error('AI画像がセッションに見つかりません');
+        }
+    }
+
     // 既存の絵がある場合で、かつ再編集モードの場合のみ読み込む
     const savedDrawing = sessionStorage.getItem('mangaDrawing');
     if (savedDrawing && isEditMode) {
@@ -52,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             saveState();
         });
     } else {
-        if (!isEditMode) {
+        if (!isEditMode && !isAIMode) {
             sessionStorage.removeItem('mangaDrawing');
         }
         updatePanelPreview();

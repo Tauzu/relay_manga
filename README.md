@@ -2,13 +2,36 @@
 
 誰でもマンガの続きが描ける！コラボレーション型マンガ投稿サイト
 
+https://relay-manga.onrender.com/
+
 ## 特徴
 
 - 🎨 **ブラウザで描ける**: おえかきエディタ搭載
+- 🤖 **AI画像生成**: OpenAI gpt-image-1.5で続きを自動生成
 - 🌳 **分岐型ストーリー**: 一つのマンガから複数の続きが生まれる
 - 👥 **バトンパス機能**: 特定のユーザーに続きを依頼
 - 👍 **うぃーね機能**: お気に入りのページを応援
 - 📱 **レスポンシブ対応**: スマホでも快適に閲覧・投稿
+
+## 🤖 AI画像生成機能（オプション）
+
+### セットアップ
+
+1. OpenAI APIキーを取得: https://platform.openai.com/
+2. `.env`ファイルに追加:
+   ```bash
+   OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxx
+   ```
+3. 組織認証を完了: https://platform.openai.com/settings/organization/general
+
+### 使い方
+
+1. 「続きを投稿」ページで「🤖 AIで作成」をクリック
+2. プロンプトを入力（例: "主人公が驚いて振り返る"）
+3. 「前のページ画像を参考にする」をON（推奨）
+4. 生成完了まで30秒〜2分待つ
+
+---
 
 ## 技術スタック
 
@@ -16,6 +39,7 @@
 - **Frontend**: TailwindCSS, Fabric.js, Vis.js
 - **Database**: PostgreSQL
 - **Storage**: Cloudinary
+- **AI**: OpenAI gpt-image-1.5（オプション）
 - **Hosting**: Render
 
 ## ローカル開発環境のセットアップ

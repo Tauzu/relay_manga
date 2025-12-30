@@ -17,4 +17,7 @@ urlpatterns = [
     # バトンパス機能
     path('page/<int:page_id>/pass-baton/', views.pass_baton, name='pass_baton'),
     path('my-page/', views.my_page, name='my_page'),
+
+        # AI画像生成
+    path('page/<int:parent_id>/generate-ai/', views.generate_page_with_ai, name='generate_page_with_ai'),
 ]

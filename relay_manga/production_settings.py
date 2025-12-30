@@ -88,3 +88,6 @@ LOGGING = {
         },
     },
 }
+
+# OpenAI API設定（本番環境）
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')

@@ -211,3 +211,59 @@ Renderが自動的に`python manage.py migrate`を実行します
 1. Renderのログを確認
 2. エラーメッセージをGoogle検索
 3. Django公式ドキュメントを参照
+
+
+# 環境変数に以下を追加
+
+## AI画像生成機能を使用する場合
+
+```bash
+# OpenAI API設定
+OPENAI_API_KEY=<OpenAIのAPIキー>
+```
+
+### OpenAI APIキーの取得方法
+
+1. [OpenAI Platform](https://platform.openai.com/)にアクセス
+2. アカウント作成・ログイン
+3. 「API keys」から新しいキーを作成
+4. 生成されたキーをコピー（後から確認できないので注意）
+
+### 組織認証が必要
+
+**重要**: `gpt-image-1.5`モデルを使用するには、[API Organization Verification](https://help.openai.com/en/articles/10910291-api-organization-verification)を完了する必要があります。
+
+1. [開発者コンソール](https://platform.openai.com/settings/organization/general)にアクセス
+2. 組織認証を完了させる
+
+### 料金について
+
+**gpt-image-1.5の料金（高品質・1024x1024）:**
+- 入力トークン: プロンプトのテキスト + 参照画像（使用時）
+- 出力トークン: 約4,160トークン/枚
+- 最新の料金は[料金ページ](https://openai.com/pricing#image-generation)で確認
+
+**参考（2025年1月時点の概算）:**
+- 1枚あたり約$0.10〜$0.15程度
+- 前のページ参照ありの場合は追加で入力トークンがかかる
+
+### 機能の特徴
+
+✅ **2つの生成モード**
+- **通常生成**: プロンプトのみから新規生成
+- **参照生成（推奨）**: 前のページ画像を参考にして一貫性のある続きを生成
+
+✅ **高品質設定**
+- モデル: `gpt-image-1.5`（最新・最高品質）
+- サイズ: 1024x1024px（正方形）
+- 品質: high
+- 入力精度: high（参照モード時）
+
+### 注意事項
+
+- OpenAI APIキーは環境変数として設定し、コードにハードコードしない
+- 本番環境では必ずAPIキーを設定してください
+- APIキーが設定されていない場合、AI生成機能は使用できません
+- 組織認証が完了していない場合、`gpt-image-1.5`は使用できません
+- 生成には30秒〜2分程度かかる場合があります
+- APIキーには使用制限（rate limit）を設定することを推奨
