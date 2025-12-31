@@ -24,7 +24,7 @@ def create_manga(request):
             manga = form.save(commit=False)
             manga.created_by = request.user
             manga.save()
-            return redirect('manga_detail', manga_id=manga.id)
+            return redirect('create_page', manga_id=manga.id)
     else:
         form = MangaForm()
     return render(request, 'manga/create_manga.html', {'form': form})
