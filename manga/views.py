@@ -651,7 +651,6 @@ def generate_page_with_ai(request, parent_id):
                 prompt=full_prompt,
                 size="1024x1024",
                 quality="high",
-                response_format="b64_json",
             )
         
         # 生成された画像のbase64データを取得
@@ -666,8 +665,22 @@ def generate_page_with_ai(request, parent_id):
         })
         
     except Exception as e:
-        logger.error(f"AI画像生成エラー: {str(e)}")
+        error_message = str(e)
+        logger.error(f"AI画像生成エラー: {error_message}", exc_info=True)
+        
+        # よくあるエラーの日本語化
+        user_message = 'エラーが発生しました'
+        
+        if 'safety system' in error_message:
+            user_message = 'プロンプトに不適切な単語が含まれています。修正してやり直してください。'
+        elif 'rate_limit' in error_message.lower():
+            user_message = 'APIのレート制限に達しました。しばらく待ってから再試行してください。'
+        elif 'timeout' in error_message.lower():
+            user_message = 'タイムアウトしました。もう一度試してください。'
+        else:
+            user_message = f'エラーが発生しました。サイト管理者に伝えてください: {error_message}'
+        
         return JsonResponse({
             'success': False,
-            'error': f'エラーが発生しました: {str(e)}'
+            'error': user_message
         }, status=500)
