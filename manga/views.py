@@ -149,8 +149,24 @@ def page_viewer(request, page_id):
         if p.parent_id:
             edges.append({"from": p.parent_id, "to": p.id})
 
+    # 6. OGP用の絶対URL画像を取得
+    page_image_url = page.image.url
+    if not page_image_url.startswith('http'):
+        # 相対URLの場合は絶対URLに変換
+        page_image_url = request.build_absolute_uri(page_image_url)
+    
+    # 7. 表紙画像も絶対URLに変換
+    cover_image_url = None
+    if manga.cover_image:
+        cover_image_url = manga.cover_image.url
+        if not cover_image_url.startswith('http'):
+            cover_image_url = request.build_absolute_uri(cover_image_url)
+
+    # 8. 現在のページの絶対URLを取得
+    absolute_url = request.build_absolute_uri()
+
     return render(request, "manga/viewer.html", {
-        "manga": page.manga,
+        "manga": manga,
         "pages": ordered_pages,
         "pages_json": json.dumps(pages_data),
         "current_index": current_index,
@@ -158,6 +174,9 @@ def page_viewer(request, page_id):
         "nodes": json.dumps(nodes),
         "edges": json.dumps(edges),
         "current_page_id": page.id,
+        "page_image_url": page_image_url,  # OGP用の絶対URL画像
+        "cover_image_url": cover_image_url,  # 背景用の絶対URL画像
+        "absolute_url": absolute_url,  # ページの絶対URL
     })
 
 
