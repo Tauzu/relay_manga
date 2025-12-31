@@ -67,9 +67,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     lockScalingFlip: true,
                     hasControls: false,
                     hasBorders: true,
+                    isImmovableObject: true,
                 });
                 
                 canvas.add(img);
+                lockImmovableObject();
                 canvas.renderAll();
                 
                 // 再編集モードと同じ処理
@@ -103,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(savedDrawing, function() {
             // コマ枠を固定
-            lockPanelFrames();
+            lockImmovableObject();
             canvas.renderAll();
             panelsApplied = true;
             switchToDrawingMode();
@@ -400,7 +402,7 @@ document.getElementById('apply-panels').addEventListener('click', function() {
                 lockMovementX: true,
                 lockMovementY: true,
                 hasControls: false,
-                isPanelFrame: true  // コマ枠として識別するフラグ
+                isImmovableObject: true  // 不動オブジェクトとして識別するフラグ
             });
             canvas.add(rect);
         }
@@ -481,7 +483,7 @@ function setupEventListeners() {
     canvas.on('object:added', function(e) {
         if (canvas._isAddingPanels) return;  // コマ枠追加中はスキップ
         
-        if (e.target && !e.target.isTemporary && e.target.type !== 'path' && !e.target.isPanelFrame) {
+        if (e.target && !e.target.isTemporary && e.target.type !== 'path' && !e.target.isImmovableObject) {
             saveState();
         }
     });
@@ -677,8 +679,8 @@ function saveState() {
         history = history.slice(0, historyStep + 1);
     }
     
-    // カスタムプロパティ（isPanelFrame）も含めて保存
-    history.push(JSON.stringify(canvas.toJSON(['isPanelFrame'])));
+    // カスタムプロパティ（isImmovableObject）も含めて保存
+    history.push(JSON.stringify(canvas.toJSON(['isImmovableObject'])));
     historyStep = history.length - 1;
     
     updateHistoryButtons();
@@ -693,7 +695,7 @@ function undo() {
         isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
             // コマ枠を再度固定
-            lockPanelFrames();
+            lockImmovableObject();
             canvas.renderAll();
             isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
@@ -712,7 +714,7 @@ function redo() {
         isLoadingHistory = true;  // フラグON
         canvas.loadFromJSON(history[historyStep], function() {
             // コマ枠を再度固定
-            lockPanelFrames();
+            lockImmovableObject();
             canvas.renderAll();
             isLoadingHistory = false;  // フラグOFF
             updateHistoryButtons();
@@ -730,10 +732,10 @@ function updateHistoryButtons() {
     console.log(`History: step=${historyStep}, length=${history.length}, undo=${historyStep > 0}, redo=${historyStep < history.length - 1}`);
 }
 
-// コマ枠を固定する関数
-function lockPanelFrames() {
+// 不動オブジェクト（コマ枠など）を固定する関数
+function lockImmovableObject() {
     canvas.getObjects().forEach(obj => {
-        if (obj.isPanelFrame) {
+        if (obj.isImmovableObject) {
             obj.selectable = false;
             obj.evented = false;
             obj.lockMovementX = true;
@@ -778,7 +780,7 @@ function clearCanvas() {
 // 保存
 function saveImage() {
     // カスタムプロパティも含めて保存
-    const canvasData = JSON.stringify(canvas.toJSON(['isPanelFrame']));
+    const canvasData = JSON.stringify(canvas.toJSON(['isImmovableObject']));
     sessionStorage.setItem('mangaDrawing', canvasData);
     
     const dataURL = canvas.toDataURL('image/png');
