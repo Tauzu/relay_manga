@@ -375,11 +375,13 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // ページタイトルも更新
         document.title = newTitle;
-        
-        // URLの更新（履歴APIを使用）
+    }
+    
+    // 共有ボタンクリック時にURLを更新する関数
+    function updateUrlForSharing(pageData) {
         const newUrl = `/page/${pageData.id}/viewer/`;
         if (window.location.pathname !== newUrl) {
-            window.history.pushState({pageId: pageData.id}, '', newUrl);
+            window.history.replaceState({pageId: pageData.id}, '', newUrl);
             
             const ogUrl = document.querySelector('meta[property="og:url"]');
             if (ogUrl) {
@@ -395,34 +397,47 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const pageTitle = currentPageData.title;
         
-        // 現在のページURLを取得
-        const shareUrl = encodeURIComponent(window.location.href);
-        
-        // X共有用のテキスト
-        const xShareText = encodeURIComponent(
-            `「${mangaTitle}」の ${pageTitle} が気になる\n\n#リレーマンガ #マンガ投稿サイト\n`
-        );
-        
         // X共有ボタン
         const xShareButton = document.getElementById("share-x-button");
         if (xShareButton) {
             xShareButton.addEventListener("click", (e) => {
                 e.preventDefault();
+                
+                // 現在表示中のページ情報を取得
+                const currentPage = window.viewerPages[window.currentPageIndex || window.initialIndex];
+                
+                // 共有前にURLを更新
+                updateUrlForSharing(currentPage);
+                
+                // URLとテキストを生成
+                const shareUrl = encodeURIComponent(window.location.href);
+                const xShareText = encodeURIComponent(
+                    `「${mangaTitle}」の ${currentPage.title} が気になる\n\n#リレーマンガ #マンガ投稿サイト\n`
+                );
+                
                 const url = `https://x.com/intent/tweet?text=${xShareText}&url=${shareUrl}`;
                 window.open(url, "_blank", "noopener,noreferrer,width=550,height=420");
             });
         }
-        
-        // LINE共有用のテキスト
-        const lineShareText = encodeURIComponent(
-            `「${mangaTitle}」の ${pageTitle} のつづきをかいてください！`
-        );
         
         // LINE共有ボタン
         const lineShareButton = document.getElementById("share-line-button");
         if (lineShareButton) {
             lineShareButton.addEventListener("click", (e) => {
                 e.preventDefault();
+                
+                // 現在表示中のページ情報を取得
+                const currentPage = window.viewerPages[window.currentPageIndex || window.initialIndex];
+                
+                // 共有前にURLを更新
+                updateUrlForSharing(currentPage);
+                
+                // URLとテキストを生成
+                const shareUrl = encodeURIComponent(window.location.href);
+                const lineShareText = encodeURIComponent(
+                    `「${mangaTitle}」の ${currentPage.title} のつづきをかいてください！`
+                );
+                
                 const url = `https://line.me/R/share?text=${lineShareText}%0A${shareUrl}`;
                 window.open(url, "_blank", "noopener,noreferrer");
             });
@@ -435,6 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ページ情報をグローバルに公開（viewer.jsから使用）
     window.updateMetaTags = updateMetaTags;
     window.mangaTitle = mangaTitle;
+    window.currentPageIndex = window.initialIndex; // 現在のページインデックスを保存
 });
 </script>
 

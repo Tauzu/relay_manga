@@ -64,6 +64,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         currentIndex = newIndex;
         
+        // グローバルに現在のページインデックスを保存（共有ボタン用）
+        window.currentPageIndex = newIndex;
+        
         // ツリービューが開いている場合は現在ページをハイライト
         if (treeModal.classList.contains('active')) {
             highlightCurrentNode(page.id);
@@ -74,51 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
             window.updateMetaTags(page);
         }
         
-        // 共有ボタンのURLとテキストを更新
-        updateShareButtons(page);
-    }
-
-    /* 共有ボタンの更新 */
-    function updateShareButtons(page) {
-        const mangaTitle = window.mangaTitle || "リレーマンガ";
-        const pageTitle = page.title;
-        const shareUrl = encodeURIComponent(window.location.href);
-        
-        // X共有ボタン
-        const xShareButton = document.getElementById("share-x-button");
-        if (xShareButton) {
-            const xShareText = encodeURIComponent(
-                `「${mangaTitle}」の ${pageTitle} が気になる\n\n#リレーマンガ #マンガ投稿サイト\n`
-            );
-            
-            // イベントリスナーを再設定
-            const newXButton = xShareButton.cloneNode(true);
-            xShareButton.parentNode.replaceChild(newXButton, xShareButton);
-            
-            newXButton.addEventListener("click", (e) => {
-                e.preventDefault();
-                const url = `https://x.com/intent/tweet?text=${xShareText}&url=${shareUrl}`;
-                window.open(url, "_blank", "noopener,noreferrer,width=550,height=420");
-            });
-        }
-        
-        // LINE共有ボタン
-        const lineShareButton = document.getElementById("share-line-button");
-        if (lineShareButton) {
-            const lineShareText = encodeURIComponent(
-                `「${mangaTitle}」の ${pageTitle} のつづきをかいてください！`
-            );
-            
-            // イベントリスナーを再設定
-            const newLineButton = lineShareButton.cloneNode(true);
-            lineShareButton.parentNode.replaceChild(newLineButton, lineShareButton);
-            
-            newLineButton.addEventListener("click", (e) => {
-                e.preventDefault();
-                const url = `https://line.me/R/share?text=${lineShareText}%0A${shareUrl}`;
-                window.open(url, "_blank", "noopener,noreferrer");
-            });
-        }
     }
 
     /* 🟦 Splide が移動したらページ情報を同期 */
