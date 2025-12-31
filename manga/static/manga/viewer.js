@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const xShareButton = document.getElementById("share-x-button");
         if (xShareButton) {
             const xShareText = encodeURIComponent(
-                `「${mangaTitle}」の ${pageTitle} を読んでいます！\n\n#リレーマンガ #マンガ投稿サイト\n`
+                `「${mangaTitle}」の ${pageTitle} が気になる\n\n#リレーマンガ #マンガ投稿サイト\n`
             );
             
             // イベントリスナーを再設定
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const lineShareButton = document.getElementById("share-line-button");
         if (lineShareButton) {
             const lineShareText = encodeURIComponent(
-                `「${mangaTitle}」の ${pageTitle} を読んでいます！\n続きを描いてみませんか？`
+                `「${mangaTitle}」の ${pageTitle} のつづきをかいてください！`
             );
             
             // イベントリスナーを再設定
