@@ -4,28 +4,36 @@
 {% block title %}{{ manga.title }} Viewer{% endblock %}
 
 {% block meta %}
+<!-- 基本的なメタタグ -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- OGP (Open Graph Protocol) -->
 <meta property="og:type" content="article">
+<meta property="og:site_name" content="リレーマンガ">
+<meta property="og:title" content="{{ manga.title }} - {{ first_page.display_title }}">
+<meta property="og:description" content="「{{ manga.title }} - {{ first_page.display_title }}」 誰でもマンガの続きが描けるコラボレーション型マンガ投稿サイト">
+<meta property="og:url" content="{{ absolute_url }}">
+<meta property="og:image" content="{{ page_image_url }}">
+<meta property="og:image:width" content="1024">
+<meta property="og:image:height" content="1024">
+<meta property="og:image:alt" content="{{ first_page.display_title }}">
+<meta property="og:locale" content="ja_JP">
 
-<meta property="og:title" content="{{ manga.title }} - {{ page.display_title }}">
-<meta property="og:description" content="{{ manga.title }} の {{ page.display_title }} を読んでいます！">
-<meta property="og:url" content="{{ request.build_absolute_uri }}">
-
-<!-- 画像（絶対URLに変換） -->
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page.image.url }}">
-
-<!-- X（Twitter）カード -->
+<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ manga.title }} - {{ page.display_title }}">
-<meta name="twitter:description" content="{{ manga.title }} の {{ page.display_title }} を読んでいます！">
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ page.image.url }}">
+<meta name="twitter:title" content="{{ manga.title }} - {{ first_page.display_title }}">
+<meta name="twitter:description" content="{{ manga.title }} の {{ first_page.display_title }} が気になる">
+<meta name="twitter:image" content="{{ page_image_url }}">
+<meta name="twitter:image:alt" content="{{ first_page.display_title }}">
 {% endblock %}
 
 {% block content %}
 <style>
     /* 背景設定 */
     body {
-        {% if manga.cover_image %}
-            background-image: url("{{ manga.cover_image.url }}");
+        {% if cover_image_url %}
+            background-image: url("{{ cover_image_url }}");
         {% else %}
             background: linear-gradient(to bottom right, #f9fafb, #e5e7eb);
         {% endif %}
@@ -199,6 +207,7 @@
         <!-- 🏷 マンガタイトル（画像エリアの上） -->
         <div class="bg-white px-4 py-3 border-b border-gray-200">
             <a href="{% url 'manga_detail' manga.id %}" 
+               id="manga-title-link"
                class="text-xl font-bold text-black hover:underline">
                 {{ manga.title }}
             </a>
@@ -326,30 +335,107 @@
     window.currentPageId = {{ current_page_id }};
 </script>
 
-<!-- X・LINE共有用JS -->
+<!-- 共有機能とメタタグ更新 -->
 <script>
-    // X共有
-    const xShareText = encodeURIComponent(
-        `「{{ manga.title }}」の {{ first_page.display_title }} を読んでいます！\n#リレーマンガ #マンガ投稿サイト\n`
-    );
-    const shareUrl = encodeURIComponent(window.location.href);
-
-    document.getElementById("share-x-button").addEventListener("click", (e) => {
-        e.preventDefault();
-        const url = `https://x.com/intent/tweet?text=${xShareText}&url=${shareUrl}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-    });
-
-    // LINE共有
-    const lineShareText = encodeURIComponent(
-        `「{{ manga.title }}」の {{ first_page.display_title }} のつづきをかいてください！\n${window.location.href}`
-    );
-
-    document.getElementById("share-line-button").addEventListener("click", (e) => {
-        e.preventDefault();
-        const url = `https://line.me/R/share?text=${lineShareText}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-    });
+document.addEventListener("DOMContentLoaded", () => {
+    // マンガタイトルを取得（nullチェック付き）
+    const mangaTitleElement = document.getElementById("manga-title-link");
+    const mangaTitle = mangaTitleElement ? mangaTitleElement.textContent.trim() : "リレーマンガ";
+    
+    // メタタグを動的に更新する関数
+    function updateMetaTags(pageData) {
+        if (!pageData) return;
+        
+        // 画像URLを絶対URLに変換
+        let imageUrl = pageData.image;
+        if (imageUrl && !imageUrl.startsWith('http')) {
+            imageUrl = window.location.origin + imageUrl;
+        }
+        
+        // OGP画像の更新
+        const ogImage = document.querySelector('meta[property="og:image"]');
+        if (ogImage && imageUrl) {
+            ogImage.setAttribute('content', imageUrl);
+        }
+        
+        // Twitter Card画像の更新
+        const twitterImage = document.querySelector('meta[name="twitter:image"]');
+        if (twitterImage && imageUrl) {
+            twitterImage.setAttribute('content', imageUrl);
+        }
+        
+        // タイトルの更新
+        const newTitle = `${mangaTitle} - ${pageData.title}`;
+        
+        const ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', newTitle);
+        
+        const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+        if (twitterTitle) twitterTitle.setAttribute('content', newTitle);
+        
+        // ページタイトルも更新
+        document.title = newTitle;
+        
+        // URLの更新（履歴APIを使用）
+        const newUrl = `/page/${pageData.id}/viewer/`;
+        if (window.location.pathname !== newUrl) {
+            window.history.pushState({pageId: pageData.id}, '', newUrl);
+            
+            const ogUrl = document.querySelector('meta[property="og:url"]');
+            if (ogUrl) {
+                ogUrl.setAttribute('content', window.location.href);
+            }
+        }
+    }
+    
+    // 共有ボタンの設定
+    function setupShareButtons() {
+        const currentPageData = window.viewerPages[window.initialIndex];
+        if (!currentPageData) return;
+        
+        const pageTitle = currentPageData.title;
+        
+        // 現在のページURLを取得
+        const shareUrl = encodeURIComponent(window.location.href);
+        
+        // X共有用のテキスト
+        const xShareText = encodeURIComponent(
+            `「${mangaTitle}」の ${pageTitle} が気になる\n\n#リレーマンガ #マンガ投稿サイト\n`
+        );
+        
+        // X共有ボタン
+        const xShareButton = document.getElementById("share-x-button");
+        if (xShareButton) {
+            xShareButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                const url = `https://x.com/intent/tweet?text=${xShareText}&url=${shareUrl}`;
+                window.open(url, "_blank", "noopener,noreferrer,width=550,height=420");
+            });
+        }
+        
+        // LINE共有用のテキスト
+        const lineShareText = encodeURIComponent(
+            `「${mangaTitle}」の ${pageTitle} のつづきをかいてください！`
+        );
+        
+        // LINE共有ボタン
+        const lineShareButton = document.getElementById("share-line-button");
+        if (lineShareButton) {
+            lineShareButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                const url = `https://line.me/R/share?text=${lineShareText}%0A${shareUrl}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+            });
+        }
+    }
+    
+    // 初期化
+    setupShareButtons();
+    
+    // ページ情報をグローバルに公開（viewer.jsから使用）
+    window.updateMetaTags = updateMetaTags;
+    window.mangaTitle = mangaTitle;
+});
 </script>
 
 <script src="{% static 'manga/viewer.js' %}"></script>
