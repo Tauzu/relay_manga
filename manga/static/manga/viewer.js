@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("image-splide");
     const title = document.getElementById("viewer-title");
     const likeForm = document.getElementById("like-form");
     const likeButton = document.getElementById("like-button");
@@ -20,10 +21,122 @@ document.addEventListener("DOMContentLoaded", () => {
     const splide = new Splide("#image-splide", {
         type: "slide",
         start: currentIndex,
-        arrows: true,
+        arrows: false, // デフォルト矢印を無効化
         pagination: false,
         rewind: false,
     });
+
+    // カスタム矢印を作成
+    const prevArrow = document.createElement('button');
+    prevArrow.className = 'custom-arrow custom-arrow-prev';
+    prevArrow.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    `;
+    prevArrow.addEventListener('click', () => splide.go('<'));
+
+    const nextArrow = document.createElement('button');
+    nextArrow.className = 'custom-arrow custom-arrow-next';
+    nextArrow.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+    `;
+    nextArrow.addEventListener('click', () => splide.go('>'));
+
+    // 矢印をSplideコンテナに追加
+    const splideContainer = document.querySelector('.splide');
+    splideContainer.appendChild(prevArrow);
+    splideContainer.appendChild(nextArrow);
+
+    /* ==================== UI自動非表示機能 ==================== */
+    let hideTimeout = null;
+    const HIDE_DELAY = 3000; // 3秒後に非表示
+    
+    // 非表示対象の要素を取得
+    const pageCounter = document.getElementById('page-counter');
+    const customArrows = [prevArrow, nextArrow];
+    
+    // CSSトランジションを追加
+    if (pageCounter) {
+        pageCounter.style.transition = 'opacity 0.5s ease-in-out';
+    }
+    
+    customArrows.forEach(arrow => {
+        arrow.style.transition = 'opacity 0.5s ease-in-out';
+    });
+    
+    // UI要素を非表示にする関数
+    function hideUIElements() {
+        if (pageCounter) {
+            pageCounter.classList.add('opacity-0', 'pointer-events-none');
+        }
+        customArrows.forEach(arrow => {
+            arrow.style.opacity = '0';
+            arrow.style.pointerEvents = 'none';
+        });
+    }
+    
+    // UI要素を表示する関数
+    function showUIElements() {
+        if (pageCounter) {
+            pageCounter.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        customArrows.forEach(arrow => {
+            // arrow-disabledクラスがある場合は元の薄い状態（0.3）に戻す
+            if (arrow.classList.contains('arrow-disabled')) {
+                arrow.style.opacity = '0.3';
+            } else {
+                arrow.style.opacity = '1';
+            }
+            arrow.style.pointerEvents = arrow.classList.contains('arrow-disabled') ? 'none' : 'auto';
+        });
+    }
+    
+    // タイマーをリセットして再カウント開始
+    function resetHideTimer() {
+        // UI要素を表示
+        showUIElements();
+        
+        // 既存のタイマーをクリア
+        if (hideTimeout) {
+            clearTimeout(hideTimeout);
+        }
+        
+        // 新しいタイマーを設定
+        hideTimeout = setTimeout(() => {
+            hideUIElements();
+        }, HIDE_DELAY);
+    }
+    
+    // 操作検知イベントを設定
+    const events = ['mousemove', 'mousedown', 'touchstart', 'touchmove', 'keydown', 'wheel'];
+    
+    events.forEach(eventType => {
+        document.addEventListener(eventType, resetHideTimer, { passive: true });
+    });
+    
+    // 初期タイマー開始
+    resetHideTimer();
+    
+    // モーダルが開いている間はタイマーを停止
+    const observer = new MutationObserver(() => {
+        if (treeModal.classList.contains('active')) {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+            showUIElements();
+        } else {
+            resetHideTimer();
+        }
+    });
+    
+    observer.observe(treeModal, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+    /* ==================== UI自動非表示機能終了 ==================== */
 
     /* 🟦 ページ情報更新 */
     function updateViewer(newIndex) {
@@ -62,6 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
             treeToggle.classList.remove('has-branches');
         }
 
+        // 矢印の有効/無効を更新
+        updateArrowStates(newIndex);
+
         currentIndex = newIndex;
         
         // グローバルに現在のページインデックスを保存（共有ボタン用）
@@ -77,6 +193,23 @@ document.addEventListener("DOMContentLoaded", () => {
             window.updateMetaTags(page);
         }
         
+    }
+
+    /* 矢印の有効/無効を更新 */
+    function updateArrowStates(index) {
+        // 最初のページの場合は前の矢印を無効化
+        if (index === 0) {
+            prevArrow.classList.add('arrow-disabled');
+        } else {
+            prevArrow.classList.remove('arrow-disabled');
+        }
+
+        // 最後のページの場合は次の矢印を無効化
+        if (index === pages.length - 1) {
+            nextArrow.classList.add('arrow-disabled');
+        } else {
+            nextArrow.classList.remove('arrow-disabled');
+        }
     }
 
     /* 🟦 Splide が移動したらページ情報を同期 */
