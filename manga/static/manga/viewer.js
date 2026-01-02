@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* ==================== UI自動非表示機能 ==================== */
     let hideTimeout = null;
-    const HIDE_DELAY = 3000; // 3秒後に非表示
+    const HIDE_DELAY = 2000; // 秒後に非表示
     
     // 非表示対象の要素を取得
     const pageCounter = document.getElementById('page-counter');
