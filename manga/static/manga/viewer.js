@@ -45,10 +45,34 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     nextArrow.addEventListener('click', () => splide.go('>'));
 
+    // 最初へスキップ
+    const firstArrow = document.createElement('button');
+    firstArrow.className = 'custom-arrow custom-arrow-skip custom-arrow-skip-first';
+    firstArrow.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M11 19l-7-7 7-7M18 19l-7-7 7-7"/>
+        </svg>
+    `;
+    firstArrow.addEventListener('click', () => splide.go(0));
+
+    // 最後へスキップ
+    const lastArrow = document.createElement('button');
+    lastArrow.className = 'custom-arrow custom-arrow-skip custom-arrow-skip-last';
+    lastArrow.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 5l7 7-7 7M13 5l7 7-7 7"/>
+        </svg>
+    `;
+    lastArrow.addEventListener('click', () => splide.go(pages.length - 1));
+
     // 矢印をSplideコンテナに追加
     const splideContainer = document.querySelector('.splide');
     splideContainer.appendChild(prevArrow);
     splideContainer.appendChild(nextArrow);
+    splideContainer.appendChild(firstArrow);
+    splideContainer.appendChild(lastArrow);
 
     /* ==================== UI自動非表示機能 ==================== */
     let hideTimeout = null;
@@ -56,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // 非表示対象の要素を取得
     const pageCounter = document.getElementById('page-counter');
-    const customArrows = [prevArrow, nextArrow];
+    const customArrows = [prevArrow, nextArrow, firstArrow, lastArrow];
     
     // CSSトランジションを追加
     if (pageCounter) {
@@ -197,18 +221,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* 矢印の有効/無効を更新 */
     function updateArrowStates(index) {
-        // 最初のページの場合は前の矢印を無効化
+        // 前へ
         if (index === 0) {
             prevArrow.classList.add('arrow-disabled');
+            firstArrow.classList.add('arrow-disabled');
         } else {
             prevArrow.classList.remove('arrow-disabled');
+            firstArrow.classList.remove('arrow-disabled');
         }
 
-        // 最後のページの場合は次の矢印を無効化
+        // 次へ
         if (index === pages.length - 1) {
             nextArrow.classList.add('arrow-disabled');
+            lastArrow.classList.add('arrow-disabled');
         } else {
             nextArrow.classList.remove('arrow-disabled');
+            lastArrow.classList.remove('arrow-disabled');
         }
     }
 

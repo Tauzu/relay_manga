@@ -162,6 +162,28 @@
     right: 1rem;
 }
 
+/* スキップ矢印（最初・最後） */
+.custom-arrow-skip {
+    top: auto;
+    bottom: 1rem;
+    transform: none;
+}
+
+/* 左下 */
+.custom-arrow-skip-first {
+    left: 1rem;
+}
+
+/* 右下 */
+.custom-arrow-skip-last {
+    right: 1rem;
+}
+
+/* スキップボタンはホバー時に位置を動かさない */
+.custom-arrow-skip:hover:not(.arrow-disabled) {
+    transform: scale(1.05);
+}
+
 /* スマホでは余白をなくして全画面化 */
 @media (max-width: 640px) {
     .viewer-overlay {
@@ -214,6 +236,18 @@
     }
 
     .custom-arrow-next {
+        right: 0.5rem;
+    }
+
+    .custom-arrow-skip {
+        bottom: 0.75rem;
+    }
+
+    .custom-arrow-skip-first {
+        left: 0.5rem;
+    }
+
+    .custom-arrow-skip-last {
         right: 0.5rem;
     }
 }
