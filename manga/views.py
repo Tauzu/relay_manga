@@ -35,39 +35,22 @@ def manga_list(request):
     return render(request, 'manga/manga_list.html', {'mangas': mangas})
 
 
-def manga_detail(request, manga_id):
+def manga_viewer(request, manga_id):
+    """
+    マンガIDからそのマンガの最初のページ（parent=None）のviewerに遷移
+    ページがない場合は作成画面へ
+    """
     manga = get_object_or_404(Manga, id=manga_id)
-    pages = list(manga.pages.select_related('author', 'parent'))
-
-    def get_depth(page):
-        depth = 0
-        p = page.parent
-        while p:
-            depth += 1
-            p = p.parent
-        return depth
-
-    nodes = []
-    edges = []
-    for page in pages:
-        thumbnail_url = page.image.build_url(width=100, height=100, crop='fill') if page.image else ''
-        
-        nodes.append({
-            "id": page.id,
-            "title": page.display_title,
-            "author": page.author.username,
-            "imageUrl": thumbnail_url,
-            "level": get_depth(page),
-        })
-
-        if page.parent_id:
-            edges.append({"from": page.parent_id, "to": page.id})
-
-    return render(request, 'manga/manga_detail.html', {
-        'manga': manga,
-        'nodes': json.dumps(nodes),
-        'edges': json.dumps(edges),
-    })
+    
+    # 最初のページ（親がないページ）を取得
+    first_page = manga.pages.filter(parent__isnull=True).first()
+    
+    if first_page:
+        # 最初のページのviewerに遷移
+        return redirect('page_viewer', page_id=first_page.id)
+    else:
+        # ページがない場合は作成画面へ
+        return redirect('create_page', manga_id=manga.id)
 
 
 def page_viewer(request, page_id):
@@ -204,7 +187,9 @@ def create_page(request, manga_id, parent_id=None):
         parent = get_object_or_404(Page, id=parent_id, manga=manga)
 
     if parent is None and manga.pages.filter(parent__isnull=True).exists():
-        return redirect('manga_detail', manga_id=manga.id)
+        # 最初のページが既にある場合はviewerへ
+        first_page = manga.pages.filter(parent__isnull=True).first()
+        return redirect('page_viewer', page_id=first_page.id)
 
     if request.method == 'POST':
         form = PageForm(request.POST, request.FILES)
@@ -222,7 +207,7 @@ def create_page(request, manga_id, parent_id=None):
                 
                 return JsonResponse({
                     'success': True,
-                    'manga_id': manga.id,
+                    'page_id': page.id,  # 作成したページのIDを返す
                     'baton_completed': None  # create_pageではバトン達成なし
                 })
             else:
@@ -239,7 +224,8 @@ def create_page(request, manga_id, parent_id=None):
             if parent:
                 page.parent = parent
             page.save()
-            return redirect('manga_detail', manga_id=manga.id)
+            # 作成したページのviewerに遷移
+            return redirect('page_viewer', page_id=page.id)
     else:
         form = PageForm()
 
@@ -268,9 +254,6 @@ def continue_page(request, parent_id):
                     is_completed=False
                 )
                 
-                print(f"DEBUG: Checking batons for parent page {parent.id}, user {request.user.username}")
-                print(f"DEBUG: Found {completed_batons.count()} uncompleted batons")
-                
                 baton_completed = None
                 if completed_batons.exists():
                     count = completed_batons.count()
@@ -278,7 +261,6 @@ def continue_page(request, parent_id):
                         'count': count,
                         'page_id': parent.id  # 親ページのID
                     }
-                    print(f"DEBUG: Baton completed: {baton_completed}")
                 
                 # ページを保存（この時点でsignalが発火してバトンが完了になる）
                 page = form.save(commit=False)
@@ -289,7 +271,7 @@ def continue_page(request, parent_id):
                 
                 return JsonResponse({
                     'success': True,
-                    'manga_id': manga.id,
+                    'page_id': page.id,  # 作成したページのIDを返す
                     'baton_completed': baton_completed
                 })
             else:
@@ -305,7 +287,8 @@ def continue_page(request, parent_id):
             page.author = request.user
             page.parent = parent
             page.save()
-            return redirect('manga_detail', manga_id=manga.id)
+            # 作成したページのviewerに遷移
+            return redirect('page_viewer', page_id=page.id)
     else:
         form = PageForm()
 
@@ -346,14 +329,6 @@ def like_page(request, page_id):
 
 # ========== バトンパス機能 ==========
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.core.mail import send_mail
-from django.conf import settings
-from .models import Page, Baton
-from .forms import BatonPassForm
-
 @login_required
 def pass_baton(request, page_id):
     """バトンパス処理"""
@@ -382,11 +357,8 @@ def pass_baton(request, page_id):
                 )
                 
                 # メール通知
-                email_sent = False
                 try:
                     if hasattr(to_user, 'profile') and to_user.profile.email:
-                        print(f"DEBUG: Attempting to send email to {to_user.profile.email}")
-                        
                         # マイページURLを生成
                         my_page_url = request.build_absolute_uri('/my-page/')
                         
@@ -399,15 +371,11 @@ def pass_baton(request, page_id):
                                     f'続きを描いてみませんか？',
                             from_email=settings.DEFAULT_FROM_EMAIL,
                             recipient_list=[to_user.profile.email],
-                            fail_silently=False,  # エラーを表示
+                            fail_silently=False,
                         )
-                        email_sent = True
-                        print(f"DEBUG: Email sent successfully to {to_user.profile.email}")
-                    else:
-                        print(f"DEBUG: User {to_user.username} has no email address registered")
                 except Exception as e:
-                    print(f"DEBUG: Email sending failed: {str(e)}")
                     # メール送信失敗してもバトンパス自体は成功させる
+                    pass
                 
                 return JsonResponse({
                     'success': True,
@@ -531,6 +499,7 @@ def my_page(request):
             form = UserProfileForm(request.POST, instance=profile)
             if form.is_valid():
                 form.save()
+                messages.success(request, 'メールアドレスを更新しました')
                 return redirect('my_page')
         
         elif action == 'change_username':
@@ -538,6 +507,7 @@ def my_page(request):
             if username_form.is_valid():
                 user.username = username_form.cleaned_data['new_username']
                 user.save()
+                messages.success(request, 'ユーザー名を変更しました')
                 return redirect('my_page')
         
         profile_form = UserProfileForm(instance=profile)
@@ -581,13 +551,10 @@ def signup(request):
         form = SignupWithEmailForm()
     return render(request, "registration/signup.html", {"form": form})
 
-# views.py に追加する完全版AI画像生成機能
+# ========== AI画像生成 ==========
 
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
-from django.conf import settings
 from openai import OpenAI
-import base64
 import urllib.request
 import io
 import logging
@@ -660,7 +627,6 @@ def generate_page_with_ai(request, parent_id):
                 prompt=full_prompt,
                 size="1024x1024",
                 quality="low",
-                # input_fidelity="high",  # 高精度で参照
             )
         else:
             # 通常の生成（Generation API）

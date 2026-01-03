@@ -51,9 +51,9 @@
     <!-- 📄 画像表示エリア -->
     <div class="relative w-full md:rounded-lg md:shadow-md overflow-hidden bg-white">
         
-        <!-- 🏷 マンガタイトル（画像エリアの上） -->
+        <!-- 🏷 マンガタイトル（画像エリアの上）→ manga_viewerに遷移 -->
         <div class="bg-white px-4 py-3 border-b border-gray-200">
-            <a href="{% url 'manga_detail' manga.id %}" 
+            <a href="{% url 'manga_viewer' manga.id %}" 
                id="manga-title-link"
                class="text-xl font-bold text-black hover:underline">
                 {{ manga.title }}

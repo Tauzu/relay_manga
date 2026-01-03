@@ -303,17 +303,14 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             
             const data = await response.json();
-            console.log('Response data:', data);
             
             if (data.success) {
                 // バトン達成があれば表示
                 if (data.baton_completed && data.baton_completed.count > 0) {
-                    console.log('Showing baton modal:', data.baton_completed);
-                    showBatonModal(data.baton_completed.count, data.manga_id);
+                    showBatonModal(data.baton_completed.count, data.page_id);
                 } else {
-                    console.log('No baton completed, redirecting...');
-                    // バトンがなければ直接遷移
-                    window.location.href = `/${data.manga_id}/`;
+                    // バトンがなければ作成したページのviewerに遷移
+                    window.location.href = `/page/${data.page_id}/viewer/`;
                 }
             } else {
                 alert(data.error || 'エラーが発生しました');
@@ -330,18 +327,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // バトン達成モーダルを表示
-function showBatonModal(count, mangaId) {
+function showBatonModal(count, pageId) {
     const modal = document.getElementById('baton-completed-modal');
     const message = document.getElementById('baton-message');
-    message.textContent = `${count}件のバトンを達成しました`;
+    message.textContent = `${count}件のバトンを達成しました！`;
     modal.classList.remove('hidden');
     
-    window.batonMangaId = mangaId;
+    window.batonPageId = pageId;
 }
 
 // モーダルを閉じる
 function closeBatonModal() {
-    window.location.href = `/${window.batonMangaId}/`;
+    window.location.href = `/page/${window.batonPageId}/viewer/`;
 }
 
 // === AI画像生成機能 ===
