@@ -53,16 +53,22 @@
         
         <!-- 🏷 マンガタイトル（画像エリアの上）→ manga_viewerに遷移 -->
         <div class="bg-white px-4 py-3 border-b border-gray-200">
+            <!-- マンガ一覧へ戻るリンク -->
+            <a href="{% url 'manga_list' %}" 
+               class="text-xs text-gray-400 hover:text-gray-600 transition inline-block mb-1">
+                マンガ一覧　〉
+            </a>
+            
             <a href="{% url 'manga_viewer' manga.id %}" 
                id="manga-title-link"
-               class="text-xl font-bold text-black hover:underline">
+               class="text-xl font-bold text-black hover:underline block">
                 {{ manga.title }}
             </a>
         </div>
 
         <!-- ページ番号（右上に表示） -->
         <div id="page-counter"
-            class="absolute top-16 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
+            class="absolute top-20 right-4 text-gray-600 text-xs sm:text-sm font-semibold z-20 whitespace-nowrap">
         </div>
 
         <!-- 🟦 Splide スライダー -->
