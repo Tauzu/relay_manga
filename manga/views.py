@@ -660,7 +660,7 @@ def generate_page_with_ai(request, parent_id):
                 prompt=full_prompt,
                 size="1024x1024",
                 quality="low",
-                input_fidelity="high",  # 高精度で参照
+                # input_fidelity="high",  # 高精度で参照
             )
         else:
             # 通常の生成（Generation API）
