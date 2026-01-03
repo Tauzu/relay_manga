@@ -631,7 +631,6 @@ def generate_page_with_ai(request, parent_id):
 ユーザーの指示: {prompt}
 
 要件:
-- 正方形の画像（1024x1024px）
 - マンガ風のスタイル
 - 前のページの画風や連続性を保つ
 - セリフやテキストは含めない（吹き出しの枠だけはOK）"""
@@ -660,8 +659,8 @@ def generate_page_with_ai(request, parent_id):
                 image=[image_file],
                 prompt=full_prompt,
                 size="1024x1024",
-                quality="high",
-                input_fidelity="high",  # 高精度で参照
+                quality="low",
+                # input_fidelity="high",  # 高精度で参照
             )
         else:
             # 通常の生成（Generation API）
@@ -669,7 +668,7 @@ def generate_page_with_ai(request, parent_id):
                 model="gpt-image-1.5",
                 prompt=full_prompt,
                 size="1024x1024",
-                quality="high",
+                quality="low",
             )
         
         # 生成された画像のbase64データを取得
