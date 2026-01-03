@@ -659,7 +659,7 @@ def generate_page_with_ai(request, parent_id):
                 image=[image_file],
                 prompt=full_prompt,
                 size="1024x1024",
-                quality="high",
+                quality="low",
                 input_fidelity="high",  # 高精度で参照
             )
         else:
@@ -668,7 +668,7 @@ def generate_page_with_ai(request, parent_id):
                 model="gpt-image-1.5",
                 prompt=full_prompt,
                 size="1024x1024",
-                quality="high",
+                quality="low",
             )
         
         # 生成された画像のbase64データを取得
